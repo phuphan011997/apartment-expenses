@@ -125,6 +125,8 @@ section{display:flex;flex-direction:column;gap:14px}
 .chip.warn{background:var(--warn-soft);color:var(--warn)}
 .chip.ok{background:var(--accent-soft);color:var(--accent-ink)}
 
+.me.calc{font-family:var(--font-num);font-size:11.5px;font-variant-numeric:tabular-nums;margin-top:4px}
+.sub2{font-size:12px;font-weight:700;letter-spacing:.03em;color:var(--fg);margin:2px 0 4px}
 .dayitem{padding:11px 0;border-top:1px solid var(--line)}
 .dayitem:first-child{border-top:0;padding-top:0}
 .dayitem .head{display:flex;gap:10px;align-items:flex-start}
@@ -914,6 +916,11 @@ function nameKey(s){
   return String(s || "").toLowerCase().replace(/\./g, " ").replace(/\s+/g, " ")
     .replace(/^(anh|ch[iị]|em|c[oô]|ch[uú]|b[aạ]n|a|c|e)\s+/, "").trim();
 }
+/* Tính theo từng ngày, khớp với cách sheet ghi "CK mỗi người":
+   - Người mua chỉ được tính phần tiền đã đưa vào ô "Tổng cộng" của ngày đó.
+     Phần mua nhiều hơn (đồ dư) người mua giữ lại, chưa ai nợ.
+   - Ngày nào các cột chia cộng không đủ "Tổng cộng" thì phần thiếu chỉ trừ vào
+     người đã ứng hôm đó, không lan sang người khác trong tuần. */
 function settle(d){
   var groups = [];
   var names = d.days.length ? d.days[0].shares.map(function(s){ return s.name; }) : [];
@@ -922,17 +929,90 @@ function settle(d){
       label: nm,
       parts: nm.split(/\s*\+\s*/).map(nameKey).filter(Boolean),
       owed: d.days.reduce(function(a, day){ return a + (day.shares[i] ? day.shares[i].value : 0); }, 0),
-      paid: 0, buyers: []
+      paid: 0, credit: 0, held: 0, uncovered: 0, gapDays: []
     });
   });
-  byKey(d.items, function(i){ return i.buyer; }).forEach(function(b){
-    var k = nameKey(b.key), g = null;
-    for(var i = 0; i < groups.length; i++){ if(groups[i].parts.indexOf(k) >= 0){ g = groups[i]; break; } }
-    if(g){ g.paid += b.total; g.buyers.push(b.key); }
-    else groups.push({ label: b.key, parts: [k], owed: 0, paid: b.total, buyers: [b.key], orphan: true });
+  function groupOf(buyer){
+    var k = nameKey(buyer);
+    for(var i = 0; i < groups.length; i++){ if(groups[i].parts.indexOf(k) >= 0) return groups[i]; }
+    var g = { label: buyer, parts: [k], owed: 0, paid: 0, credit: 0, held: 0, uncovered: 0, gapDays: [], orphan: true };
+    groups.push(g);
+    return g;
+  }
+
+  var dayOf = {};
+  d.days.forEach(function(day){ dayOf[day.label] = day; });
+
+  var buckets = {}, loose = [];
+  d.items.forEach(function(it){
+    if(it.amount == null) return;
+    var g = groupOf(it.buyer);
+    g.paid += it.amount;
+    var lbl = it.date ? dshort(it.date) : "";
+    if(dayOf[lbl]) (buckets[lbl] = buckets[lbl] || []).push({ g: g, amt: it.amount });
+    else { g.held += it.amount; loose.push({ name: g.label, amt: it.amount, item: it.name }); }
   });
-  groups.forEach(function(g){ g.net = g.paid - g.owed; });
-  return groups;
+
+  var heldRows = [], gapRows = [];
+  d.days.forEach(function(day){
+    var list = buckets[day.label] || [];
+    var bought = list.reduce(function(a, x){ return a + x.amt; }, 0);
+    var shareSum = day.shares.reduce(function(a, s){ return a + s.value; }, 0);
+    var credited = Math.min(bought, day.total);
+    var k = bought > 0 ? credited / bought : 0;
+
+    var per = [];
+    list.forEach(function(x){
+      var c = x.amt * k, h = x.amt - c;
+      x.g.credit += c; x.g.held += h;
+      var p = null;
+      for(var i = 0; i < per.length; i++){ if(per[i].g === x.g) p = per[i]; }
+      if(!p){ p = { g: x.g, credit: 0, held: 0 }; per.push(p); }
+      p.credit += c; p.held += h;
+    });
+    per.forEach(function(p){
+      if(p.held > 1) heldRows.push({ day: day.label, name: p.g.label, amt: p.held });
+    });
+
+    var gap = credited - shareSum;
+    if(Math.abs(gap) <= 1) return;
+    var who = [];
+    if(gap > 0 && credited > 0){
+      /* cột chia thu không đủ: người ứng hôm đó nhận về ít hơn */
+      per.forEach(function(p){
+        var u = gap * p.credit / credited;
+        p.g.uncovered += u;
+        p.g.gapDays.push({ day: day.label, amt: u });
+        who.push({ name: p.g.label, amt: u });
+      });
+    }else if(gap < 0 && shareSum > 0){
+      /* cột chia thu nhiều hơn số tiền đã ứng: giảm phần phải trả theo tỉ lệ */
+      day.shares.forEach(function(s, i){
+        var g = groups[i]; if(!g || !s.value) return;
+        var u = -gap * s.value / shareSum;
+        g.owed -= u;
+        who.push({ name: g.label, amt: -u });
+      });
+    }
+    /* đoán nguyên nhân: cột ghép nhiều người chỉ ghi số của một người */
+    var hint = null;
+    if(gap > 0){
+      var pairs = day.shares.filter(function(s){ return /\+/.test(s.name) && s.value > 0; });
+      var extra = pairs.reduce(function(a, s){
+        return a + s.value * (s.name.split(/\s*\+\s*/).length - 1);
+      }, 0);
+      if(pairs.length && Math.abs(extra - gap) <= 2){
+        hint = pairs.map(function(s){
+          var n = s.name.split(/\s*\+\s*/).length;
+          return { name: s.name, people: n, now: s.value, should: s.value * n };
+        });
+      }
+    }
+    gapRows.push({ day: day.label, total: day.total, credited: credited, sum: shareSum, gap: gap, who: who, hint: hint });
+  });
+
+  groups.forEach(function(g){ g.net = g.credit - g.uncovered - g.owed; });
+  return { groups: groups, held: heldRows, loose: loose, gaps: gapRows };
 }
 function transfers(groups){
   var cred = groups.filter(function(g){ return g.net > 500; })
@@ -968,40 +1048,38 @@ function viewPay(){
   if(d.kind === "matrix") return matrixPay(d);
   if(!d.items.length && !d.days.length) return '<div class="empty">Tab này chưa có gì để tính.</div>';
 
-  var groups = settle(d).sort(function(a, b){ return b.net - a.net; });
-  var st = transfers(groups), moves = st.moves;
+  var res = settle(d);
+  var groups = res.groups.slice().sort(function(a, b){ return b.net - a.net; });
+  var moves = transfers(groups).moves;
   var need = moves.reduce(function(a, m){ return a + m.amt; }, 0);
-  var owedTotal = groups.reduce(function(a, g){ return a + g.owed; }, 0);
   var paidTotal = groups.reduce(function(a, g){ return a + g.paid; }, 0);
-
-  var gapTotal = paidTotal - owedTotal;
+  var owedTotal = groups.reduce(function(a, g){ return a + g.owed; }, 0);
+  var heldTotal = groups.reduce(function(a, g){ return a + g.held; }, 0);
+  var gapTotal = res.gaps.reduce(function(a, r){ return a + r.gap; }, 0);
+  var n = function(x){ return nf.format(Math.round(x)); };
 
   var h = '<div class="hero"><div class="lab">Tổng cần chuyển cho nhau</div><div class="big">' + esc(vnd(need)) + '</div>' +
     '<div class="sub">' + moves.length + ' lượt chuyển là xong</div><div class="statgrid">' +
       '<div><div class="k">Đã ứng</div><div class="v">' + esc(short(paidTotal)) + '</div></div>' +
-      '<div><div class="k">Phải chia</div><div class="v">' + esc(short(owedTotal)) + '</div></div>' +
-      '<div><div class="k">Chưa chia</div><div class="v"' + (Math.abs(gapTotal) > 1000 ? ' style="color:var(--warn)"' : "") +
-        '>' + esc(short(gapTotal)) + '</div></div>' +
+      '<div><div class="k">Đã chia</div><div class="v">' + esc(short(owedTotal)) + '</div></div>' +
+      '<div><div class="k">Chưa chia</div><div class="v"' + (paidTotal - owedTotal > 1000 ? ' style="color:var(--warn)"' : "") +
+        '>' + esc(short(paidTotal - owedTotal)) + '</div></div>' +
     '</div></div>';
 
-  if(Math.abs(gapTotal) > 1000){
-    h += '<div class="card"><div class="ttl"><h2>Còn ' + esc(vnd(gapTotal)) + ' chưa chia cho ai</h2></div>' +
-      '<div class="note">Tiền đã ứng nhiều hơn tổng các cột chia trong sheet, thường là do đồ còn dư được trừ lại hoặc một ngày chưa cộng đủ. ' +
-      'Các lượt chuyển khoản bên dưới tính theo bảng chia hiện có, nên người ứng nhiều sẽ chưa được hoàn đủ phần này.</div></div>';
-  }
-
-  h += '<div class="card"><div class="ttl"><h2>Từng người</h2><em>ứng − phải chia</em></div><div class="rows">' +
+  /* Từng người: hiện luôn phép tính để ai cũng tự kiểm được */
+  h += '<div class="card"><div class="ttl"><h2>Từng người</h2></div><div class="rows">' +
     groups.map(function(g){
       var tag = g.net > 500 ? '<span class="chip ok">nhận lại</span>'
               : g.net < -500 ? '<span class="chip warn">phải trả</span>'
               : '<span class="chip">xong rồi</span>';
-      var miss = st.short[g.label];
-      return '<div class="row"><div class="main"><div class="nm">' + esc(g.label) + '</div><div class="me">' + tag +
-        '<span>ứng ' + esc(short(g.paid)) + '</span><span>·</span><span>chia ' + esc(short(g.owed)) + '</span>' +
-        (g.orphan ? '<span class="chip warn">chưa có trong bảng chia</span>' : "") +
-        (miss > 0 ? '<span class="chip warn">còn thiếu ' + esc(short(miss)) + '</span>' : "") +
-        '</div></div><div class="amt" style="color:' +
-        (g.net > 500 ? "var(--accent)" : g.net < -500 ? "var(--warn)" : "var(--muted)") + '">' +
+      var calc = ['ứng ' + n(g.paid)];
+      if(g.held > 1) calc.push('giữ đồ dư ' + n(g.held));
+      calc.push('phần mình ' + n(g.owed));
+      g.gapDays.forEach(function(x){ if(x.amt > 1) calc.push('thiếu ' + x.day + ' ' + n(x.amt)); });
+      return '<div class="row"><div class="main"><div class="nm">' + esc(g.label) + '</div>' +
+        '<div class="me">' + tag + (g.orphan ? '<span class="chip warn">chưa có trong bảng chia</span>' : "") + '</div>' +
+        '<div class="me calc">' + esc(calc.join(' − ')) + '</div></div>' +
+        '<div class="amt" style="color:' + (g.net > 500 ? "var(--accent)" : g.net < -500 ? "var(--warn)" : "var(--muted)") + '">' +
         (g.net > 500 ? "+" : "") + esc(vnd(g.net)) + '</div></div>';
     }).join("") + '</div></div>';
 
@@ -1011,24 +1089,38 @@ function viewPay(){
           return '<div class="row"><div class="main"><div class="nm">' + esc(m.from) + " → " + esc(m.to) +
             '</div></div><div class="amt">' + esc(vnd(m.amt)) + '</div></div>';
         }).join("") + '</div>'
-      : '<div class="empty" style="padding:18px 0">Không ai nợ ai, mọi người đã cân bằng.</div>') +
-    (Math.abs(gapTotal) > 1000
-      ? '<div class="note" style="margin-top:12px">Vì còn ' + esc(vnd(gapTotal)) +
-        ' chưa chia, số tiền thu về không đủ hoàn cho người đã ứng. Phần thiếu được chia theo tỉ lệ cho những người ứng tiền, nên ai cũng chịu một phần bằng nhau về tỉ lệ thay vì dồn hết vào một người.</div>'
-      : "") + '</div>';
+      : '<div class="empty" style="padding:18px 0">Không ai nợ ai, mọi người đã cân bằng.</div>') + '</div>';
 
-  var gaps = d.days.filter(function(day){
-    var s = day.shares.reduce(function(a, x){ return a + x.value; }, 0);
-    return Math.abs(s - day.total) > 1;
-  });
-  if(gaps.length){
-    h += '<div class="card"><div class="ttl"><h2>Cần xem lại trong sheet</h2></div><div class="rows">' +
-      gaps.map(function(day){
-        var s = day.shares.reduce(function(a, x){ return a + x.value; }, 0);
-        return '<div class="row"><div class="main"><div class="nm">Ngày ' + esc(day.label) + '</div><div class="me">' +
-          '<span>cộng các cột chia: ' + esc(vnd(s)) + '</span><span>·</span><span>ô Tổng cộng: ' + esc(vnd(day.total)) +
-          '</span></div></div><div class="amt" style="color:var(--warn)">' + esc(vnd(day.total - s)) + '</div></div>';
-      }).join("") + '</div><div class="note" style="margin-top:10px">Phần “phải chia” ở trên lấy theo các cột từng người, nên những ngày lệch này sẽ làm số tiền chuyển khoản sai. Sửa trong sheet rồi tải lại.</div></div>';
+  /* Vì sao tiền ứng không khớp phần chia */
+  if(heldTotal > 1 || res.gaps.length){
+    h += '<div class="card"><div class="ttl"><h2>Vì sao còn ' + esc(vnd(paidTotal - owedTotal)) + ' chưa chia</h2></div>';
+    if(heldTotal > 1){
+      h += '<div class="sub2">Đồ dư người mua giữ lại · ' + esc(vnd(heldTotal)) + '</div><div class="rows">' +
+        res.held.map(function(r){
+          return '<div class="row"><div class="main"><div class="nm">' + esc(r.name) + '</div><div class="me"><span>ngày ' +
+            esc(r.day) + ': tiền mua nhiều hơn ô Tổng cộng</span></div></div><div class="amt">' + esc(vnd(r.amt)) + '</div></div>';
+        }).join("") +
+        res.loose.map(function(r){
+          return '<div class="row"><div class="main"><div class="nm">' + esc(r.name) + '</div><div class="me"><span>' +
+            esc(r.item) + ': chưa có ngày trong bảng chia</span></div></div><div class="amt">' + esc(vnd(r.amt)) + '</div></div>';
+        }).join("") +
+        '</div><div class="note" style="margin:8px 0 14px">Phần này chưa ai nợ. Người mua giữ lại, chia vào ngày dùng tới.</div>';
+    }
+    if(res.gaps.length){
+      h += '<div class="sub2">Ngày các cột chia cộng không đủ · ' + esc(vnd(gapTotal)) + '</div><div class="rows">' +
+        res.gaps.map(function(r){
+          var fix = r.hint ? '<div class="me"><span class="chip warn">' + r.hint.map(function(x){
+              return 'Cột ' + x.name + ' (' + x.people + ' người) chỉ ghi 1 suất ' + n(x.now) + ' đ. Ghi ' + n(x.should) + ' đ thì khớp';
+            }).join('; ') + '</span></div>' : "";
+          var who = r.who.length ? '<div class="me"><span>Tạm trừ vào người ứng hôm đó: ' + r.who.map(function(x){
+              return esc(x.name) + ' ' + n(x.amt);
+            }).join(', ') + '</span></div>' : "";
+          return '<div class="row"><div class="main"><div class="nm">Ngày ' + esc(r.day) + '</div><div class="me"><span>cộng các cột ' +
+            n(r.sum) + ' · Tổng cộng ' + n(r.credited) + '</span></div>' + fix + who + '</div><div class="amt" style="color:var(--warn)">' +
+            esc(vnd(r.gap)) + '</div></div>';
+        }).join("") + '</div><div class="note" style="margin-top:8px">Sửa ô đó trong sheet rồi tải lại, phần thiếu tự biến mất.</div>';
+    }
+    h += '</div>';
   }
 
   var notes = d.days.filter(function(day){ return day.note; });
@@ -1099,7 +1191,9 @@ function viewStats(){
       (total ? Math.round(it.amount / total * 100) : 0) + '% tuần</span></div></div><div class="amt">' + esc(vnd(it.amount)) + '</div></div>';
   }).join("") + '</div></div>';
 
-  var left = items.filter(function(i){ return i.leftQty || i.leftVal; });
+  /* Chỉ lấy dòng có ghi "Dư lại". Cột bên cạnh không phải lúc nào cũng là giá trị
+     đồ dư: ngày 01/10 nó là phần chia mỗi người (thịt bò 250.000 / 6 = 41.667). */
+  var left = items.filter(function(i){ return i.leftQty; });
   if(left.length){
     h += '<div class="card"><div class="ttl"><h2>Còn dư trong bếp</h2><em>' +
       esc(vnd(left.reduce(function(a, b){ return a + (b.leftVal || 0); }, 0))) + '</em></div><div class="rows">' +
