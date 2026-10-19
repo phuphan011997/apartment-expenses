@@ -1,13 +1,13 @@
 # Chi Tiêu Nhà Chung
 
 Web app xem chi tiêu nhà chung trên điện thoại. Phần số liệu đọc từ Google Sheet
-(chỉ đọc, không bao giờ ghi vào sheet). Tab **Hạng mục** lưu riêng vào MongoDB.
+(chỉ đọc, không bao giờ ghi vào sheet). Tab **Note** lưu riêng vào MongoDB.
 
 ## Cấu trúc
 
 ```
 index.html     toàn bộ giao diện, logic đọc sheet, và bản sao dữ liệu dự phòng
-api/index.js   API cho tab Hạng mục, chạy như một serverless function trên Vercel
+api/index.js   API cho tab Note, chạy như một serverless function trên Vercel
 vercel.json    chuyển mọi đường dẫn /api/* về api/index.js
 package.json   khai thư viện mongodb cho API
 ```
@@ -21,7 +21,7 @@ package.json   khai thư viện mongodb cho API
 4. **Deployments** → **Redeploy** bản mới nhất để biến có hiệu lực.
 
 Dữ liệu nằm trong database `apartment_expenses` (đổi bằng biến `MONGODB_DB`),
-gồm hai collection `members` và `items`. Chưa nối database thì tab Hạng mục hiện
+gồm hai collection `members` và `items`. Chưa nối database thì tab Note hiện
 hướng dẫn này, các tab đọc sheet vẫn chạy bình thường.
 
 ### Khoá bằng mã (nên làm)
@@ -37,10 +37,10 @@ gọi API phải kèm mã này. Mỗi máy nhập mã một lần, app tự nh�
 | `GET /api/health` | kiểm tra kết nối database, có cần mã không |
 | `GET /api/members` | danh sách người |
 | `PUT /api/members/:id` | thêm hoặc sửa một người `{ name, order }` |
-| `DELETE /api/members/:id` | xoá người; bị chặn nếu người đó còn trong hạng mục |
-| `GET /api/items` | danh sách hạng mục, mới nhất trước |
+| `DELETE /api/members/:id` | xoá người; bị chặn nếu người đó còn trong note |
+| `GET /api/items` | danh sách note, mới nhất trước |
 | `PUT /api/items/:id` | thêm hoặc sửa `{ title, date: "YYYY-MM-DD", participants: [id], amount?, payer?, note? }` |
-| `DELETE /api/items/:id` | xoá hạng mục |
+| `DELETE /api/items/:id` | xoá note |
 
 Mã do app tự tạo (`it_…`, `m_…`), nên PUT gửi lại nhiều lần cũng không sinh bản ghi trùng.
 
@@ -82,17 +82,24 @@ kể cả khi số người hoặc thứ tự cột khác đi.
 
 ## Các tab
 
+Thanh menu dưới cùng:
+
 - **Tổng quan** — tổng chi, chi theo ngày, ai đang ứng tiền, bảng chia tiền theo ngày
 - **Giao dịch** — lọc theo người mua và theo ngày, tìm theo tên món
-- **Thanh toán** — đối chiếu tiền đã ứng với phần phải chia, gợi ý ai chuyển cho ai
-- **Hạng mục** — ghi hạng mục chi tiêu (ví dụ "Ăn trưa 18/10"), chọn người tham gia,
-  tuỳ chọn số tiền và người trả; lọc theo người để xem phần mình. Lưu vào MongoDB.
+- **Thanh toán** — chọn **Cả nhà** để xem ai chuyển cho ai, hoặc chọn một người để
+  xem người đó chuyển cho ai, phần phải trả từng ngày gồm những món nào, và đã ứng
+  những gì. Ở tab Nhà, chọn một người sẽ ra các khoản tiền nhà người đó phải đóng.
+  Lựa chọn được nhớ trên máy.
 - **Thống kê** — tỉ lệ theo người, khoản lớn nhất, đồ còn dư trong bếp
-- **Sheet** — chọn tab, thêm tab mới, đổi nguồn dữ liệu
+- **Note** — ghi chú chi tiêu (ví dụ "Ăn trưa 18/10"), chọn người tham gia, tuỳ chọn
+  số tiền và người trả; lọc theo người để xem phần mình. Lưu vào MongoDB.
+
+**Nâng cao** (nút ở đầu trang, hoặc bấm vào tên tab sheet): chọn tab sheet đang xem,
+thêm tab mới, đổi nguồn dữ liệu. Chọn xong app quay lại đúng màn hình đang xem.
 
 ## Thêm tab mới
 
-Google không cho đọc danh sách tab từ bên ngoài. Có hai cách: gõ đúng tên tab
+Google không cho đọc danh sách tab từ bên ngoài. Trong trang Nâng cao có hai cách: gõ đúng tên tab
 vào ô "Thêm tab mới" (app kiểm tra trước khi thêm), hoặc bấm "Tự dò tab theo
 tuần" để app thử các tên dạng `16.10-22.10`. Danh sách tab đã thêm được nhớ
 trên máy người dùng qua `localStorage`.

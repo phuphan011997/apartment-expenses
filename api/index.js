@@ -1,5 +1,5 @@
 // ============================================================
-//  /api/index.js — API cho tab "Hạng mục", chạy như một serverless function.
+//  /api/index.js — API cho tab "Note", chạy như một serverless function.
 //  vercel.json chuyển mọi đường dẫn /api/* về đây kèm tham số ?path=
 //  Dữ liệu ở đây độc lập với Google Sheet: app không bao giờ ghi vào sheet.
 //
@@ -73,7 +73,7 @@ const clean = (s, max) => String(s == null ? "" : s).replace(/\s+/g, " ").trim()
 
 function checkItem(b) {
   const title = clean(b.title, 80);
-  if (!title) return { error: "Cần tên hạng mục." };
+  if (!title) return { error: "Cần nội dung note." };
   const date = String(b.date || "");
   if (!DATE_RE.test(date) || isNaN(Date.parse(date))) return { error: "Ngày không hợp lệ." };
   const participants = Array.from(new Set([].concat(b.participants || []).map(String)))
@@ -136,7 +136,7 @@ module.exports = async (req, res) => {
       }
       if (method === "DELETE" && id) {
         const used = await db.collection("items").countDocuments({ $or: [{ participants: id }, { payer: id }] });
-        if (used) return send(res, 409, { error: "Người này còn trong " + used + " hạng mục. Bỏ khỏi các hạng mục đó trước khi xoá." });
+        if (used) return send(res, 409, { error: "Người này còn trong " + used + " note. Bỏ khỏi các note đó trước khi xoá." });
         await c.deleteOne({ _id: id });
         return send(res, 200, { ok: true });
       }

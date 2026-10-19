@@ -57,8 +57,13 @@ body{background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:1
 
 .topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .topbar .wrap{display:flex;align-items:center;gap:10px;padding-block:10px;min-height:56px}
-.brand{display:flex;flex-direction:column;min-width:0;flex:1}
-.brand b{font-size:15px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand{display:flex;flex-direction:column;align-items:flex-start;min-width:0;flex:1;background:none;border:0;padding:4px 6px 4px 0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:10px}
+.brand b{display:flex;align-items:center;gap:3px;max-width:100%;font-size:15px;font-weight:700;letter-spacing:-.01em;white-space:nowrap}
+.brand b > span{overflow:hidden;text-overflow:ellipsis}
+.brand .caret{width:15px;height:15px;flex:none;stroke:var(--muted);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.iconbtn[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+.backbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.backbar h1{margin:0;font-size:18px;font-weight:700;letter-spacing:-.01em}
 .brand .meta{font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:6px;min-width:0}
 .brand .meta span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .src{flex:none;display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:99px;font-size:10.5px;font-weight:700;letter-spacing:.02em;background:var(--surface-2);color:var(--muted)}
@@ -125,6 +130,14 @@ section{display:flex;flex-direction:column;gap:14px}
 .chip.warn{background:var(--warn-soft);color:var(--warn)}
 .chip.ok{background:var(--accent-soft);color:var(--accent-ink)}
 
+.dayitem .nm{font-size:14.5px;font-weight:500}
+.dayitem .me{font-size:12px;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dayitem .amt{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:14px;font-weight:500;white-space:nowrap;flex:none}
+.sublist{margin-top:8px;display:flex;flex-direction:column;gap:4px;padding-left:10px;border-left:2px solid var(--line)}
+.sublist div{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted)}
+.sublist span:first-child{min-width:0;overflow-wrap:anywhere}
+.sublist span:last-child{font-family:var(--font-num);font-variant-numeric:tabular-nums;flex:none}
+.hero .sub.calc-sub{font-family:var(--font-num);font-size:12px;font-variant-numeric:tabular-nums;line-height:1.5}
 .me.calc{font-family:var(--font-num);font-size:11.5px;font-variant-numeric:tabular-nums;margin-top:4px}
 .sub2{font-size:12px;font-weight:700;letter-spacing:.03em;color:var(--fg);margin:2px 0 4px}
 .dayitem{padding:11px 0;border-top:1px solid var(--line)}
@@ -148,7 +161,7 @@ section{display:flex;flex-direction:column;gap:14px}
 input[type="search"],input[type="text"],input[type="date"],input[type="password"],select{width:100%;min-width:0;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-family:inherit;font-size:15px}
 select{appearance:auto}
 
-/* tab Hạng mục */
+/* tab Note */
 .flabel{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 6px}
 .flabel:first-child{margin-top:0}
 .frow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -208,10 +221,13 @@ a{color:var(--accent-ink)}
 <div class="app">
   <header class="topbar">
     <div class="wrap">
-      <div class="brand">
-        <b id="shName">Đang tải…</b>
-        <div class="meta"><span id="shMeta">Chi Phí Nhà Hàng Tháng</span><span class="src" id="srcChip"><i></i>…</span></div>
-      </div>
+      <button class="brand" id="brandBtn" title="Đổi tab sheet" aria-label="Đổi tab sheet đang xem">
+        <b><span id="shName">Đang tải…</span><svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></b>
+        <span class="meta"><span id="shMeta">Chi Phí Nhà Hàng Tháng</span><span class="src" id="srcChip"><i></i>…</span></span>
+      </button>
+      <button class="iconbtn" id="btnAdv" title="Nâng cao: chọn tab sheet, nguồn dữ liệu" aria-label="Nâng cao">
+        <svg viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"></path><circle cx="15" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>
+      </button>
       <button class="iconbtn" id="btnTheme" title="Đổi nền sáng/tối" aria-label="Đổi nền sáng tối">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
       </button>
@@ -230,12 +246,10 @@ a{color:var(--accent-ink)}
       <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"></path></svg>Giao dịch</button>
     <button class="tab" data-tab="pay" aria-selected="false">
       <svg viewBox="0 0 24 24"><path d="M17 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3z"></path><path d="M8 10h8M8 14h5"></path></svg>Thanh toán</button>
-    <button class="tab" data-tab="items" aria-selected="false">
-      <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M9 3v3h6V3"></path><path d="M12 10v6M9 13h6"></path></svg>Hạng mục</button>
     <button class="tab" data-tab="stats" aria-selected="false">
       <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9v9z"></path><path d="M15.5 3.5A9 9 0 0 1 20.5 8.5L12 12z"></path></svg>Thống kê</button>
-    <button class="tab" data-tab="sheets" aria-selected="false">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18M9 9v12"></path></svg>Sheet</button>
+    <button class="tab" data-tab="items" aria-selected="false">
+      <svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"></path><path d="M15 3v4h4"></path><path d="M8.5 12h7M8.5 16h4.5"></path></svg>Note</button>
   </div></nav>
 </div>
 
@@ -268,13 +282,15 @@ var state = {
   filterDay: "all",
   q: "",
   busy: "",
-  msg: ""
+  msg: "",
+  payWho: "all",           // người đang xem ở tab Thanh toán, nhớ trên máy
+  prevTab: "overview"      // quay về tab này khi rời trang Nâng cao
 };
 
 /* ---------- lưu lựa chọn trên máy ---------- */
 function save(){
   try{ localStorage.setItem(LS, JSON.stringify({
-    sheets: state.sheets, current: state.current, mode: state.mode,
+    sheets: state.sheets, current: state.current, mode: state.mode, payWho: state.payWho,
     theme: document.documentElement.getAttribute("data-theme") || ""
   })); }catch(e){}
 }
@@ -286,6 +302,7 @@ function load(){
     }
     if(typeof o.current === "string" && o.current) state.current = o.current;
     if(o.mode === "live" || o.mode === "snapshot" || o.mode === "auto") state.mode = o.mode;
+    if(typeof o.payWho === "string" && o.payWho) state.payWho = o.payWho;
     if(o.theme) document.documentElement.setAttribute("data-theme", o.theme);
   }catch(e){}
 }
@@ -948,7 +965,7 @@ function settle(d){
   var names = d.days.length ? d.days[0].shares.map(function(s){ return s.name; }) : [];
   names.forEach(function(nm, i){
     groups.push({
-      label: nm,
+      label: nm, col: i,
       parts: nm.split(/\s*\+\s*/).map(nameKey).filter(Boolean),
       owed: d.days.reduce(function(a, day){ return a + (day.shares[i] ? day.shares[i].value : 0); }, 0),
       paid: 0, credit: 0, held: 0, uncovered: 0, gapDays: []
@@ -957,7 +974,7 @@ function settle(d){
   function groupOf(buyer){
     var k = nameKey(buyer);
     for(var i = 0; i < groups.length; i++){ if(groups[i].parts.indexOf(k) >= 0) return groups[i]; }
-    var g = { label: buyer, parts: [k], owed: 0, paid: 0, credit: 0, held: 0, uncovered: 0, gapDays: [], orphan: true };
+    var g = { label: buyer, col: -1, parts: [k], owed: 0, paid: 0, credit: 0, held: 0, uncovered: 0, gapDays: [], orphan: true };
     groups.push(g);
     return g;
   }
@@ -1065,6 +1082,102 @@ function transfers(groups){
   debt.forEach(function(d){ var g = d.owe - (td > tc && td > 0 ? d.owe * (tc / td) : d.owe); if(g > 500) short[d.name] = -g; });
   return { moves: out, short: short };
 }
+/* Bộ chọn "Cả nhà / từng người" dùng chung cho tab Thanh toán */
+function payPicker(labels, active){
+  return '<div class="filters" id="fPay" role="group" aria-label="Xem theo người">' +
+    '<button class="pill" data-v="all" aria-pressed="' + (active === "all") + '">Cả nhà</button>' +
+    labels.map(function(l){
+      return '<button class="pill" data-v="' + esc(l) + '" aria-pressed="' + (active === l) + '">' + esc(l) + '</button>';
+    }).join("") + '</div>';
+}
+/* Người đã chọn ở tab khác vẫn được giữ: khớp đúng tên, không thì khớp theo
+   tên gọi bỏ "Anh/Chị" (Anh Phú ở tab Nhà khớp với A.Phú + C.Vân ở tab tuần). */
+function pickGroup(groups, who){
+  if(!who || who === "all") return null;
+  var k = nameKey(who);
+  return groups.filter(function(g){ return g.label === who; })[0] ||
+         groups.filter(function(g){ return g.parts.indexOf(k) >= 0; })[0] || null;
+}
+function dayDate(label, d){
+  var it = d.items.filter(function(x){ return x.date && dshort(x.date) === label; })[0];
+  return it ? it.date : null;
+}
+
+/* Một người: chuyển cho ai, phần phải trả từng ngày gồm những món nào, đã ứng gì */
+function personPay(d, g, moves){
+  var n = function(x){ return nf.format(Math.round(x)); };
+  var outs = moves.filter(function(m){ return m.from === g.label; });
+  var ins = moves.filter(function(m){ return m.to === g.label; });
+  var verb = g.net < -500 ? "phải trả" : g.net > 500 ? "được nhận lại" : "đã cân bằng";
+
+  var calc = ['ứng ' + n(g.paid)];
+  if(g.held > 1) calc.push('giữ đồ dư ' + n(g.held));
+  calc.push('phần mình ' + n(g.owed));
+  g.gapDays.forEach(function(x){ if(x.amt > 1) calc.push('thiếu ' + x.day + ' ' + n(x.amt)); });
+
+  var h = '<div class="hero"><div class="lab">' + esc(g.label) + ' ' + verb + '</div>' +
+    '<div class="big" style="color:' + (g.net < -500 ? "var(--warn)" : g.net > 500 ? "var(--accent)" : "var(--fg)") + '">' +
+      esc(vnd(Math.abs(g.net))) + '</div>' +
+    '<div class="sub calc-sub">' + esc(calc.join(' − ')) + '</div></div>';
+
+  /* chuyển khoản của người này */
+  h += '<div class="card"><div class="ttl"><h2>Chuyển khoản</h2></div>' +
+    (outs.length || ins.length
+      ? '<div class="rows">' +
+          outs.map(function(m){
+            return '<div class="row"><div class="main"><div class="nm">Chuyển cho ' + esc(m.to) + '</div></div>' +
+              '<div class="amt" style="color:var(--warn)">' + esc(vnd(m.amt)) + '</div></div>';
+          }).join("") +
+          ins.map(function(m){
+            return '<div class="row"><div class="main"><div class="nm">Nhận từ ' + esc(m.from) + '</div></div>' +
+              '<div class="amt" style="color:var(--accent)">+' + esc(vnd(m.amt)) + '</div></div>';
+          }).join("") + '</div>'
+      : '<div class="empty" style="padding:14px 0">Không cần chuyển gì.</div>') + '</div>';
+
+  /* phần phải trả, từng ngày một, kèm các món đã mua hôm đó */
+  var days = g.col < 0 ? [] : d.days.map(function(day){
+    return { day: day, v: day.shares[g.col] ? day.shares[g.col].value : 0 };
+  }).filter(function(x){ return x.v > 0.5; });
+
+  h += '<div class="card"><div class="ttl"><h2>Các mục phải trả</h2><em>' + esc(vnd(g.owed)) + '</em></div>';
+  if(!days.length){
+    h += '<div class="empty" style="padding:14px 0">' + (g.orphan ? "Người này chưa có cột trong bảng chia của tab này." : "Tuần này không có phần nào phải trả.") + '</div>';
+  }else{
+    h += '<div>' + days.map(function(x){
+      var dt = dayDate(x.day.label, d);
+      var bought = d.items.filter(function(it){ return it.date && dshort(it.date) === x.day.label; });
+      var pct = x.day.total ? Math.round(x.v / x.day.total * 100) : 0;
+      return '<div class="dayitem"><div class="head"><div class="main"><div class="nm">' + esc(dt ? dlong(dt) : "Ngày " + x.day.label) + '</div>' +
+          '<div class="me"><span>' + pct + '% trong ' + n(x.day.total) + ' đ cả nhà chia hôm đó</span></div></div>' +
+          '<div class="amt">' + esc(vnd(x.v)) + '</div></div>' +
+        (bought.length ? '<div class="sublist">' + bought.map(function(it){
+            return '<div><span>' + esc(it.name) + (it.qty ? ' · ' + esc(it.qty) : "") + ' — ' + esc(it.buyer) + '</span>' +
+              '<span>' + (it.amount == null ? "—" : n(it.amount)) + '</span></div>';
+          }).join("") + '</div>' : "") +
+        (x.day.note ? '<div class="ck"><b>CK cho</b><span>' + esc(x.day.note) + '</span></div>' : "") +
+        '</div>';
+    }).join("") + '</div>';
+  }
+  h += '</div>';
+
+  /* các khoản người này đã ứng */
+  var mineBought = d.items.filter(function(it){ return it.amount != null && g.parts.indexOf(nameKey(it.buyer)) >= 0; });
+  if(mineBought.length){
+    h += '<div class="card"><div class="ttl"><h2>Đã ứng</h2><em>' + esc(vnd(g.paid)) + '</em></div><div class="rows">' +
+      mineBought.map(function(it){
+        return '<div class="row"><div class="main"><div class="nm">' + esc(it.name) + '</div><div class="me"><span>' +
+          esc(it.date ? dlong(it.date) : "chưa ghi ngày") + '</span>' + (it.qty ? '<span>·</span><span>' + esc(it.qty) + '</span>' : "") +
+          (it.leftQty ? '<span class="chip ok">còn ' + esc(it.leftQty) + '</span>' : "") +
+          '</div></div><div class="amt">' + esc(vnd(it.amount)) + '</div></div>';
+      }).join("") + '</div>' +
+      (g.held > 1 ? '<div class="note" style="margin-top:10px">' + esc(n(g.held)) + ' đ trong số này là đồ dư chưa đưa vào bảng chia, nên chưa ai trả lại phần đó.</div>' : "") +
+      (g.uncovered > 1 ? '<div class="note" style="margin-top:6px">Ngày ' + esc(g.gapDays.map(function(x){ return x.day; }).join(", ")) +
+        ' các cột chia cộng không đủ, nên được nhận về ít hơn ' + esc(n(g.uncovered)) + ' đ. Xem chi tiết ở mục Cả nhà.</div>' : "") +
+      '</div>';
+  }
+  return h;
+}
+
 function viewPay(){
   var d = state.data;
   if(d.kind === "matrix") return matrixPay(d);
@@ -1080,7 +1193,11 @@ function viewPay(){
   var gapTotal = res.gaps.reduce(function(a, r){ return a + r.gap; }, 0);
   var n = function(x){ return nf.format(Math.round(x)); };
 
-  var h = '<div class="hero"><div class="lab">Tổng cần chuyển cho nhau</div><div class="big">' + esc(vnd(need)) + '</div>' +
+  var sel = pickGroup(res.groups, state.payWho);
+  var h = payPicker(res.groups.map(function(g){ return g.label; }), sel ? sel.label : "all");
+  if(sel) return h + personPay(d, sel, moves);
+
+  h += '<div class="hero"><div class="lab">Tổng cần chuyển cho nhau</div><div class="big">' + esc(vnd(need)) + '</div>' +
     '<div class="sub">' + moves.length + ' lượt chuyển là xong</div><div class="statgrid">' +
       '<div><div class="k">Đã ứng</div><div class="v">' + esc(short(paidTotal)) + '</div></div>' +
       '<div><div class="k">Đã chia</div><div class="v">' + esc(short(owedTotal)) + '</div></div>' +
@@ -1163,7 +1280,36 @@ function matrixPay(d){
   var grand = per.reduce(function(a, p){ return a + p.value; }, 0);
   var due = d.cats.filter(function(c){ return c.due; }).map(function(c){ return c.name + " " + c.due; });
 
-  var h = '<div class="hero"><div class="lab">Cả nhà phải đóng</div><div class="big">' + esc(vnd(grand)) + '</div>' +
+  /* chọn một người: các khoản người đó phải đóng */
+  var who = state.payWho, idx = -1;
+  if(who && who !== "all"){
+    var k = nameKey(who);
+    d.people.forEach(function(p, i){ if(idx < 0 && p.name === who) idx = i; });
+    d.people.forEach(function(p, i){ if(idx < 0 && nameKey(p.name) === k) idx = i; });
+  }
+  var h0 = payPicker(d.people.map(function(p){ return p.name; }), idx >= 0 ? d.people[idx].name : "all");
+  if(idx >= 0){
+    var p = d.people[idx];
+    var rows = d.cats.map(function(c){ return { c: c, v: c.vals[idx] || 0 }; });
+    var has = rows.filter(function(r){ return r.v > 0.5; });
+    var none = rows.filter(function(r){ return !(r.v > 0.5); });
+    var tot = d.totalRow ? (d.totalRow.vals[idx] || 0) : has.reduce(function(a, r){ return a + r.v; }, 0);
+    return h0 + '<div class="hero"><div class="lab">' + esc(p.name) + ' phải đóng</div>' +
+      '<div class="big" style="color:var(--warn)">' + esc(vnd(tot)) + '</div>' +
+      '<div class="sub">' + (p.group ? esc(p.group) + " · " : "") + has.length + ' khoản</div></div>' +
+      '<div class="card"><div class="ttl"><h2>Các mục phải trả</h2></div><div class="rows">' +
+        has.map(function(r){
+          return '<div class="row"><div class="main"><div class="nm">' + esc(r.c.name) + '</div><div class="me">' +
+            (r.c.due ? '<span class="chip">hạn ' + esc(r.c.due) + '</span>' : "") +
+            (r.c.total ? '<span>cả nhà ' + esc(vnd(r.c.total)) + '</span>' : "") + '</div></div>' +
+            '<div class="amt">' + esc(vnd(r.v)) + '</div></div>';
+        }).join("") + '</div>' +
+        (none.length ? '<div class="note" style="margin-top:10px">Chưa có số hoặc không phải đóng: ' +
+          esc(none.map(function(r){ return r.c.name; }).join(", ")) + '.</div>' : "") +
+      '</div>';
+  }
+
+  var h = h0 + '<div class="hero"><div class="lab">Cả nhà phải đóng</div><div class="big">' + esc(vnd(grand)) + '</div>' +
     '<div class="sub">' + per.length + " người" + (due.length ? " · hạn gần nhất " + esc(d.cats.filter(function(c){ return c.due; })[0].due) : "") + '</div></div>';
   h += '<div class="card"><div class="ttl"><h2>Mỗi người phải trả</h2></div><div class="rows">' + per.map(function(p){
     return '<div class="row"><div class="main"><div class="nm">' + esc(p.name) + '</div><div class="me">' +
@@ -1248,7 +1394,7 @@ function matrixStats(d){
 /* ---------- Sheet ---------- */
 function viewSheets(){
   var live = state.source === "live";
-  var h = '<div class="card"><div class="ttl"><h2>Nguồn dữ liệu</h2></div>' +
+  var src = '<div class="card"><div class="ttl"><h2>Nguồn dữ liệu</h2></div>' +
     '<div class="filters" id="fMode" style="overflow:visible;flex-wrap:wrap">' +
       '<button class="pill" data-v="auto" aria-pressed="' + (state.mode === "auto") + '">Tự động</button>' +
       '<button class="pill" data-v="live" aria-pressed="' + (state.mode === "live") + '">Chỉ Google Sheet</button>' +
@@ -1266,7 +1412,8 @@ function viewSheets(){
     '<div class="btnrow" style="margin-top:12px"><button class="btn pri" id="reloadBtn">Tải lại ngay</button>' +
     '<a class="btn" href="' + SHEET_URL + '" target="_blank" rel="noopener">Mở Google Sheet</a></div></div>';
 
-  h += '<div class="card"><div class="ttl"><h2>Chọn tab</h2><em>' + state.sheets.length + ' tab</em></div>' +
+  var h = '<div class="backbar"><h1>Nâng cao</h1><button class="btn" id="advBack">Xong</button></div>' +
+    '<div class="card"><div class="ttl"><h2>Tab sheet đang xem</h2><em>' + state.sheets.length + ' tab</em></div>' +
     state.sheets.map(function(s){
       var inSnap = SNAP_SHEETS.indexOf(s) >= 0;
       return '<div class="opt" role="radio" tabindex="0" aria-checked="' + (s === state.current) + '" data-sheet="' + esc(s) + '">' +
@@ -1283,7 +1430,7 @@ function viewSheets(){
     (state.msg ? '<div class="hint" style="margin-top:10px">' + esc(state.msg) + '</div>' : "") +
     '<div class="hint" style="margin-top:10px">Tab thêm bằng tay chỉ đọc được khi app chạy trực tiếp với Google Sheet. Bản sao chỉ có ' +
       SNAP_SHEETS.length + ' tab gốc.</div></div>';
-  return h;
+  return h + src;
 }
 
 /* ---------- render ---------- */
@@ -1293,7 +1440,7 @@ function skeleton(){
     '<div class="card"><div class="sk" style="height:12px;width:35%"></div><div class="sk" style="height:120px;margin-top:12px"></div></div>' +
     '<div class="card"><div class="sk" style="height:12px;width:30%"></div><div class="sk" style="height:90px;margin-top:12px"></div></div>';
 }
-/* ---------- Hạng mục: lưu vào MongoDB qua /api, không đụng tới Google Sheet ---------- */
+/* ---------- Note: lưu vào MongoDB qua /api, không đụng tới Google Sheet ---------- */
 var TK = "ctn:token";
 var L = {
   status: "idle",          // idle | loading | ready | no_api | no_db | need_token | error
@@ -1393,7 +1540,7 @@ function ledgerLoad(){
 function saveItem(){
   var f = L.form;
   var parts = Object.keys(f.participants).filter(function(k){ return f.participants[k]; });
-  if(!f.title.trim()){ L.err = "Nhập tên hạng mục."; render(); return; }
+  if(!f.title.trim()){ L.err = "Nhập tên note."; render(); return; }
   if(!isoDate(f.date)){ L.err = "Chọn ngày."; render(); return; }
   if(!parts.length){ L.err = "Chọn ít nhất một người tham gia."; render(); return; }
   var id = f.id || newId("it_"), editing = !!f.id;
@@ -1480,7 +1627,7 @@ function viewItems(){
            '<div class="card"><div class="sk" style="height:12px;width:30%"></div><div class="sk" style="height:70px;margin-top:12px"></div></div>';
   }
   if(L.status === "no_api"){
-    return '<div class="card" id="ledger"><div class="ttl"><h2>Hạng mục</h2></div>' +
+    return '<div class="card" id="ledger"><div class="ttl"><h2>Note</h2></div>' +
       '<div class="note">Tab này lưu dữ liệu vào database nên chỉ chạy trên bản đã deploy lên Vercel. ' +
       'Trang đang mở không có máy chủ đi kèm (ví dụ bản xem thử), nên chưa ghi được gì.</div></div>';
   }
@@ -1495,7 +1642,7 @@ function viewItems(){
   }
   if(L.status === "need_token"){
     return '<div class="card" id="ledger"><div class="ttl"><h2>Nhập mã truy cập</h2></div>' +
-      '<div class="note">Dữ liệu hạng mục được khoá bằng mã. Hỏi người quản lý app, nhập một lần là máy này nhớ.</div>' +
+      '<div class="note">Dữ liệu note được khoá bằng mã. Hỏi người quản lý app, nhập một lần là máy này nhớ.</div>' +
       '<div style="display:flex;gap:8px;margin-top:12px"><input type="password" id="lfToken" placeholder="Mã truy cập" autocomplete="off" style="flex:1">' +
       '<button class="btn pri" data-act="token">Mở</button></div>' +
       (L.msg ? '<div class="ferr">' + esc(L.msg) + '</div>' : "") + '</div>';
@@ -1512,7 +1659,7 @@ function viewItems(){
   if(!L.members.length){
     var seed = sheetNames();
     h += '<div class="card"><div class="ttl"><h2>Thêm người trong nhà</h2></div>' +
-      '<div class="note">Cần có danh sách người trước khi ghi hạng mục.</div>' +
+      '<div class="note">Cần có danh sách người trước khi ghi note.</div>' +
       (seed.length ? '<div class="btnrow" style="margin-top:12px"><button class="btn pri" data-act="seed"' + (L.busy ? " disabled" : "") +
         '>Thêm ' + seed.length + ' người từ sheet</button></div><div class="hint" style="margin-top:6px">' + esc(seed.join(", ")) + '</div>' : "") +
       '<div class="flabel">Hoặc gõ tên</div><div style="display:flex;gap:8px"><input type="text" id="lfMember" placeholder="Tên người" style="flex:1">' +
@@ -1524,12 +1671,12 @@ function viewItems(){
   /* form thêm / sửa */
   var f = L.form || (L.form = blankForm());
   var editing = !!f.id;
-  h += '<div class="card"><div class="ttl"><h2>' + (editing ? "Sửa hạng mục" : "Thêm hạng mục") + '</h2>' +
+  h += '<div class="card"><div class="ttl"><h2>' + (editing ? "Sửa note" : "Thêm note") + '</h2>' +
     (editing ? '<button class="lnk" data-act="cancel">Huỷ sửa</button>' : "") + '</div>' +
     '<div class="quick">' + ["Ăn sáng", "Ăn trưa", "Ăn tối", "Đi chợ", "Cà phê"].map(function(q){
       return '<button class="chip" data-act="quick" data-v="' + q + '">' + q + '</button>';
     }).join("") + '</div>' +
-    '<input type="text" id="lfTitle" maxlength="80" placeholder="Tên hạng mục, ví dụ Ăn trưa" value="' + esc(f.title) + '">' +
+    '<input type="text" id="lfTitle" maxlength="80" placeholder="Nội dung, ví dụ Ăn trưa" value="' + esc(f.title) + '">' +
     '<div class="frow" style="margin-top:8px">' +
       '<input type="date" id="lfDate" aria-label="Ngày" value="' + esc(f.date) + '">' +
       '<input type="text" id="lfAmount" inputmode="numeric" placeholder="Số tiền (tuỳ chọn)" value="' + esc(f.amount) + '">' +
@@ -1547,7 +1694,7 @@ function viewItems(){
     '<div class="hintline" id="lfHint">' + esc(formHint()) + '</div>' +
     (L.err ? '<div class="ferr">' + esc(L.err) + '</div>' : "") +
     '<div class="btnrow" style="margin-top:12px"><button class="btn pri" data-act="save"' + (L.saving ? " disabled" : "") + '>' +
-      (L.saving ? "Đang lưu…" : editing ? "Lưu thay đổi" : "Lưu hạng mục") + '</button></div></div>';
+      (L.saving ? "Đang lưu…" : editing ? "Lưu thay đổi" : "Lưu note") + '</button></div></div>';
 
   /* lọc theo người */
   var list = L.who === "all" ? L.items : L.items.filter(function(it){
@@ -1564,19 +1711,19 @@ function viewItems(){
     var mine = joined.reduce(function(a, it){ return a + shareOf(it); }, 0);
     var paid = L.items.filter(function(it){ return it.payer === L.who && it.amount; })
                       .reduce(function(a, it){ return a + it.amount; }, 0);
-    h += '<div class="diff"><span><b>' + esc(memberName(L.who)) + '</b> tham gia ' + joined.length + ' hạng mục · phần mình ' +
+    h += '<div class="diff"><span><b>' + esc(memberName(L.who)) + '</b> tham gia ' + joined.length + ' note · phần mình ' +
       esc(vnd(mine)) + ' · đã trả ' + esc(vnd(paid)) + '</span></div>';
   }else{
-    h += '<div class="diff"><span>' + L.items.length + ' hạng mục · đã ghi ' +
+    h += '<div class="diff"><span>' + L.items.length + ' note · đã ghi ' +
       esc(vnd(L.items.reduce(function(a, it){ return a + (it.amount || 0); }, 0))) + '</span></div>';
   }
 
   if(!list.length){
-    h += '<div class="empty">' + (L.items.length ? "Người này chưa có hạng mục nào." : "Chưa có hạng mục nào. Thêm cái đầu tiên ở trên.") + '</div>';
+    h += '<div class="empty">' + (L.items.length ? "Người này chưa có note nào." : "Chưa có note nào. Thêm cái đầu tiên ở trên.") + '</div>';
   }else{
     var groups = byKey(list, function(it){ return it.date; });
     h += groups.map(function(g){
-      return '<div class="card flat"><div class="dayhead"><b>' + esc(dlong(isoDate(g.key))) + '</b><span>' + g.items.length + ' hạng mục</span></div>' +
+      return '<div class="card flat"><div class="dayhead"><b>' + esc(dlong(isoDate(g.key))) + '</b><span>' + g.items.length + ' note</span></div>' +
         '<div class="rows">' + g.items.map(function(it){
           var armed = L.delArm === "it:" + it.id;
           return '<div class="row"><div class="main"><div class="nm">' + esc(it.title) + '</div>' +
@@ -1673,6 +1820,7 @@ function render(){
   Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(t){
     t.setAttribute("aria-selected", String(t.dataset.tab === state.tab));
   });
+  document.getElementById("btnAdv").setAttribute("aria-pressed", String(state.tab === "sheets"));
 
   var html;
   if(state.tab === "sheets") html = viewSheets();
@@ -1705,6 +1853,11 @@ function wire(){
       state[p[1]] = b.dataset.v; render();
     });
   });
+  var fp = document.getElementById("fPay");
+  if(fp) fp.addEventListener("click", function(e){
+    var b = e.target.closest(".pill"); if(!b || b.dataset.v === state.payWho) return;
+    state.payWho = b.dataset.v; save(); render();
+  });
   var fm = document.getElementById("fMode");
   if(fm) fm.addEventListener("click", function(e){
     var b = e.target.closest(".pill"); if(!b || b.dataset.v === state.mode) return;
@@ -1719,7 +1872,7 @@ function wire(){
         save(); render(); return;
       }
       if(state.current === o.dataset.sheet) return;
-      state.current = o.dataset.sheet; save(); state.tab = "overview"; window.scrollTo(0, 0); reload();
+      state.current = o.dataset.sheet; save(); leaveAdvanced(); reload();
     }
     o.addEventListener("click", pick);
     o.addEventListener("keydown", function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); pick(e); } });
@@ -1733,7 +1886,7 @@ function wire(){
     add.disabled = true; add.textContent = "Đang kiểm tra…";
     gviz(nm, 10000).then(function(res){
       if(res && res.status !== "error"){
-        state.sheets.push(nm); state.current = nm; save(); state.tab = "overview"; reload();
+        state.sheets.push(nm); state.current = nm; save(); leaveAdvanced(); reload();
       }else{
         state.msg = "Không có tab tên “" + nm + "” trong Google Sheet."; render();
       }
@@ -1744,6 +1897,7 @@ function wire(){
   var sc = document.getElementById("scanBtn"); if(sc) sc.addEventListener("click", scan);
   var rb = document.getElementById("reloadBtn"); if(rb) rb.addEventListener("click", reload);
   var rt = document.getElementById("retry"); if(rt) rt.addEventListener("click", reload);
+  var ab = document.getElementById("advBack"); if(ab) ab.addEventListener("click", function(){ leaveAdvanced(); });
   wireItems();
 }
 
@@ -1759,6 +1913,22 @@ Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(t){
 document.getElementById("btnReload").addEventListener("click", function(){
   if(state.tab === "items") ledgerLoad(); else reload();
 });
+/* Trang Nâng cao (chọn tab sheet, nguồn dữ liệu) không nằm trên thanh menu */
+function openAdvanced(){
+  syncForm();
+  if(state.tab === "sheets"){ leaveAdvanced(); return; }
+  state.prevTab = state.tab;
+  state.tab = "sheets";
+  window.scrollTo(0, 0); render();
+}
+function leaveAdvanced(to){
+  state.tab = to || state.prevTab || "overview";
+  state.msg = "";
+  window.scrollTo(0, 0); render();
+  if(state.tab === "items" && (L.status === "idle" || L.status === "error" || L.status === "no_db")) ledgerLoad();
+}
+document.getElementById("btnAdv").addEventListener("click", openAdvanced);
+document.getElementById("brandBtn").addEventListener("click", openAdvanced);
 document.getElementById("btnTheme").addEventListener("click", function(){
   var cur = document.documentElement.getAttribute("data-theme");
   var next = cur === "dark" ? "light" : cur === "light" ? "dark"
