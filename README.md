@@ -1,13 +1,48 @@
 # Chi Tiêu Nhà Chung
 
-Web app xem chi tiêu nhà chung trên điện thoại, đọc dữ liệu từ Google Sheet.
-Một file HTML tĩnh, không cần build, không cần server, không có database.
+Web app xem chi tiêu nhà chung trên điện thoại. Phần số liệu đọc từ Google Sheet
+(chỉ đọc, không bao giờ ghi vào sheet). Tab **Hạng mục** lưu riêng vào MongoDB.
 
 ## Cấu trúc
 
 ```
-index.html   toàn bộ app: giao diện, logic đọc sheet, và bản sao dữ liệu dự phòng
+index.html     toàn bộ giao diện, logic đọc sheet, và bản sao dữ liệu dự phòng
+api/index.js   API cho tab Hạng mục, chạy như một serverless function trên Vercel
+vercel.json    chuyển mọi đường dẫn /api/* về api/index.js
+package.json   khai thư viện mongodb cho API
 ```
+
+## Nối MongoDB (làm một lần)
+
+1. Vercel → project **apartment-expenses** → tab **Storage**.
+2. **Create Database** → **MongoDB Atlas**, gói miễn phí là đủ.
+3. Nối database vào project này. Vercel tự thêm biến `MONGODB_URI`.
+   Nếu biến có tiền tố (ví dụ `STORAGE_MONGODB_URI`) API vẫn tự tìm ra.
+4. **Deployments** → **Redeploy** bản mới nhất để biến có hiệu lực.
+
+Dữ liệu nằm trong database `apartment_expenses` (đổi bằng biến `MONGODB_DB`),
+gồm hai collection `members` và `items`. Chưa nối database thì tab Hạng mục hiện
+hướng dẫn này, các tab đọc sheet vẫn chạy bình thường.
+
+### Khoá bằng mã (nên làm)
+
+Link Vercel ai có cũng mở được, nên ai có link cũng ghi được vào database.
+Đặt thêm biến `APP_TOKEN` trên Vercel (một chuỗi tuỳ ý) rồi redeploy: mọi lệnh
+gọi API phải kèm mã này. Mỗi máy nhập mã một lần, app tự nhớ.
+
+## API
+
+| Đường dẫn | Việc |
+| --- | --- |
+| `GET /api/health` | kiểm tra kết nối database, có cần mã không |
+| `GET /api/members` | danh sách người |
+| `PUT /api/members/:id` | thêm hoặc sửa một người `{ name, order }` |
+| `DELETE /api/members/:id` | xoá người; bị chặn nếu người đó còn trong hạng mục |
+| `GET /api/items` | danh sách hạng mục, mới nhất trước |
+| `PUT /api/items/:id` | thêm hoặc sửa `{ title, date: "YYYY-MM-DD", participants: [id], amount?, payer?, note? }` |
+| `DELETE /api/items/:id` | xoá hạng mục |
+
+Mã do app tự tạo (`it_…`, `m_…`), nên PUT gửi lại nhiều lần cũng không sinh bản ghi trùng.
 
 ## Hai nguồn dữ liệu
 
@@ -50,6 +85,8 @@ kể cả khi số người hoặc thứ tự cột khác đi.
 - **Tổng quan** — tổng chi, chi theo ngày, ai đang ứng tiền, bảng chia tiền theo ngày
 - **Giao dịch** — lọc theo người mua và theo ngày, tìm theo tên món
 - **Thanh toán** — đối chiếu tiền đã ứng với phần phải chia, gợi ý ai chuyển cho ai
+- **Hạng mục** — ghi hạng mục chi tiêu (ví dụ "Ăn trưa 18/10"), chọn người tham gia,
+  tuỳ chọn số tiền và người trả; lọc theo người để xem phần mình. Lưu vào MongoDB.
 - **Thống kê** — tỉ lệ theo người, khoản lớn nhất, đồ còn dư trong bếp
 - **Sheet** — chọn tab, thêm tab mới, đổi nguồn dữ liệu
 

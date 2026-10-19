@@ -1,0 +1,12 @@
+{
+  "name": "apartment-expenses",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Chi tiêu nhà chung: đọc Google Sheet, ghi hạng mục vào MongoDB",
+  "dependencies": {
+    "mongodb": "6.10.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -145,7 +145,27 @@ section{display:flex;flex-direction:column;gap:14px}
 .pill[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#FFFFFF}
 :root[data-theme="dark"] .pill[aria-pressed="true"],:root[data-theme="dark"] .btn.pri{color:#07140F}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pill[aria-pressed="true"],:root:not([data-theme="light"]) .btn.pri{color:#07140F}}
-input[type="search"],input[type="text"]{width:100%;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-family:inherit;font-size:15px}
+input[type="search"],input[type="text"],input[type="date"],input[type="password"],select{width:100%;min-width:0;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-family:inherit;font-size:15px}
+select{appearance:auto}
+
+/* tab Hạng mục */
+.flabel{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 6px}
+.flabel:first-child{margin-top:0}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.frow > *{min-width:0}
+.lnk{background:none;border:0;padding:0;color:var(--accent-ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.lnk.warn{color:var(--warn)}
+.picks{display:flex;flex-wrap:wrap;gap:7px}
+.quick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.quick .chip{cursor:pointer}
+.hintline{margin-top:10px;font-size:12.5px;color:var(--muted);font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.ferr{margin-top:10px;font-size:13px;color:var(--warn)}
+.flash{padding:10px 12px;border-radius:11px;background:var(--accent-soft);color:var(--accent-ink);font-size:13.5px;font-weight:500}
+.acts{display:flex;gap:14px;margin-top:6px}
+.chip.me-on{background:var(--accent-soft);color:var(--accent-ink)}
+.steps{margin:8px 0 0;padding-left:20px;font-size:13.5px;line-height:1.6}
+.steps li{margin-bottom:4px}
+code{font-family:var(--font-num);font-size:12.5px;background:var(--surface-2);padding:1px 5px;border-radius:5px}
 input:focus-visible,button:focus-visible,a:focus-visible,[role="radio"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .scroll{overflow-x:auto;margin-inline:-14px;padding-inline:14px}
@@ -210,6 +230,8 @@ a{color:var(--accent-ink)}
       <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"></path></svg>Giao dịch</button>
     <button class="tab" data-tab="pay" aria-selected="false">
       <svg viewBox="0 0 24 24"><path d="M17 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3z"></path><path d="M8 10h8M8 14h5"></path></svg>Thanh toán</button>
+    <button class="tab" data-tab="items" aria-selected="false">
+      <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"></rect><path d="M9 3v3h6V3"></path><path d="M12 10v6M9 13h6"></path></svg>Hạng mục</button>
     <button class="tab" data-tab="stats" aria-selected="false">
       <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9v9z"></path><path d="M15.5 3.5A9 9 0 0 1 20.5 8.5L12 12z"></path></svg>Thống kê</button>
     <button class="tab" data-tab="sheets" aria-selected="false">
@@ -1271,6 +1293,374 @@ function skeleton(){
     '<div class="card"><div class="sk" style="height:12px;width:35%"></div><div class="sk" style="height:120px;margin-top:12px"></div></div>' +
     '<div class="card"><div class="sk" style="height:12px;width:30%"></div><div class="sk" style="height:90px;margin-top:12px"></div></div>';
 }
+/* ---------- Hạng mục: lưu vào MongoDB qua /api, không đụng tới Google Sheet ---------- */
+var TK = "ctn:token";
+var L = {
+  status: "idle",          // idle | loading | ready | no_api | no_db | need_token | error
+  msg: "", members: [], items: [],
+  form: null, saving: false, err: "",
+  delArm: "", flash: "", who: "all",
+  memberMsg: "", busy: false
+};
+function tokenGet(){ try{ return localStorage.getItem(TK) || ""; }catch(e){ return ""; } }
+function tokenSet(v){ try{ if(v) localStorage.setItem(TK, v); else localStorage.removeItem(TK); }catch(e){} }
+function newId(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function todayISO(){ var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+function isoDate(s){ var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+function memberName(id){
+  for(var i = 0; i < L.members.length; i++){ if(L.members[i].id === id) return L.members[i].name; }
+  return "(đã xoá)";
+}
+function sheetNames(){
+  try{
+    var m = SNAPSHOT && SNAPSHOT["Nhà"] ? parseMatrix(SNAPSHOT["Nhà"], null, null) : null;
+    return m ? m.people.map(function(p){ return p.name; }) : [];
+  }catch(e){ return []; }
+}
+
+function api(method, path, body){
+  var opt = { method: method, headers: {}, cache: "no-store" };
+  var t = tokenGet(); if(t) opt.headers["x-app-token"] = t;
+  if(body !== undefined){ opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  function noApi(){ var e = new Error("no_api"); e.code = "no_api"; throw e; }
+  return fetch("/api/" + path, opt).then(function(r){
+    if((r.headers.get("content-type") || "").indexOf("application/json") < 0) noApi();
+    return r.json().then(function(j){ j = j || {}; j.__status = r.status; return j; });
+  }, noApi);
+}
+
+function blankForm(keep){
+  return { id: "", title: "", date: keep ? keep.date : todayISO(),
+           participants: keep ? keep.participants : {}, amount: "", payer: "", note: "" };
+}
+function formFrom(it){
+  var p = {}; it.participants.forEach(function(x){ p[x] = 1; });
+  return { id: it.id, title: it.title, date: it.date, participants: p,
+           amount: it.amount == null ? "" : String(it.amount), payer: it.payer || "", note: it.note || "" };
+}
+/* Đọc lại ô nhập trước mỗi lần vẽ lại, để không mất chữ đang gõ */
+function syncForm(){
+  if(!L.form) return;
+  var g = function(id){ var el = document.getElementById(id); return el ? el.value : null; }, v;
+  if((v = g("lfTitle")) !== null) L.form.title = v;
+  if((v = g("lfDate")) !== null) L.form.date = v;
+  if((v = g("lfAmount")) !== null) L.form.amount = v.replace(/[^\d]/g, "");
+  if((v = g("lfPayer")) !== null) L.form.payer = v;
+  if((v = g("lfNote")) !== null) L.form.note = v;
+}
+function rerender(){ syncForm(); render(); }
+/* keepForm: form vừa được đặt lại có chủ đích (sau khi lưu), đừng đọc chữ cũ
+   trên màn hình đè lên. Các trường hợp khác vẫn đọc để không mất chữ đang gõ. */
+function flash(t, keepForm){
+  L.flash = t;
+  if(keepForm) render(); else rerender();
+  clearTimeout(flash._t);
+  flash._t = setTimeout(function(){ L.flash = ""; if(state.tab === "items") rerender(); }, 2600);
+}
+function sortItems(){
+  L.items.sort(function(a, b){
+    if(a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return (a.createdAt || "") < (b.createdAt || "") ? 1 : -1;
+  });
+}
+
+function ledgerLoad(){
+  L.status = "loading"; L.msg = "";
+  if(state.tab === "items") rerender();
+  api("GET", "health").then(function(h){
+    if(h.db === "no_uri"){ L.status = "no_db"; return; }
+    if(h.db !== "ok"){ L.status = "error"; L.msg = "Không kết nối được database. Thử lại sau ít phút."; return; }
+    if(h.needsToken && !tokenGet()){ L.status = "need_token"; return; }
+    return Promise.all([api("GET", "members"), api("GET", "items")]).then(function(r){
+      if(r[0].__status === 401 || r[1].__status === 401){
+        tokenSet(""); L.status = "need_token"; L.msg = "Mã truy cập không đúng, nhập lại."; return;
+      }
+      if(r[0].__status !== 200 || r[1].__status !== 200){
+        L.status = "error"; L.msg = r[0].error || r[1].error || "Không tải được dữ liệu."; return;
+      }
+      L.members = r[0].members || [];
+      L.items = r[1].items || [];
+      sortItems();
+      if(!L.form) L.form = blankForm();
+      L.status = "ready";
+    });
+  }).catch(function(e){
+    L.status = e && e.code === "no_api" ? "no_api" : "error";
+    if(L.status === "error") L.msg = "Không tải được dữ liệu.";
+  }).then(function(){ if(state.tab === "items") rerender(); });
+}
+
+function saveItem(){
+  var f = L.form;
+  var parts = Object.keys(f.participants).filter(function(k){ return f.participants[k]; });
+  if(!f.title.trim()){ L.err = "Nhập tên hạng mục."; render(); return; }
+  if(!isoDate(f.date)){ L.err = "Chọn ngày."; render(); return; }
+  if(!parts.length){ L.err = "Chọn ít nhất một người tham gia."; render(); return; }
+  var id = f.id || newId("it_"), editing = !!f.id;
+  var body = { title: f.title, date: f.date, participants: parts,
+               amount: f.amount === "" ? null : Number(f.amount), payer: f.payer || null, note: f.note };
+  L.saving = true; L.err = ""; render();
+  api("PUT", "items/" + id, body).then(function(r){
+    L.saving = false;
+    if(r.__status !== 200){ L.err = r.error || "Không lưu được, thử lại."; rerender(); return; }
+    L.items = L.items.filter(function(x){ return x.id !== id; });
+    L.items.push(r.item); sortItems();
+    /* thêm mới thì giữ ngày và người tham gia cho lần nhập kế tiếp */
+    L.form = editing ? blankForm() : blankForm(L.form);
+    flash((editing ? "Đã sửa " : "Đã lưu ") + "“" + r.item.title + "”", true);
+  }).catch(function(){ L.saving = false; L.err = "Mất kết nối, chưa lưu được."; rerender(); });
+}
+function deleteItem(id){
+  if(L.delArm !== "it:" + id){
+    L.delArm = "it:" + id; render();
+    clearTimeout(deleteItem._t);
+    deleteItem._t = setTimeout(function(){ L.delArm = ""; if(state.tab === "items") rerender(); }, 3500);
+    return;
+  }
+  L.delArm = "";
+  api("DELETE", "items/" + id).then(function(r){
+    if(r.__status !== 200){ L.err = r.error || "Không xoá được."; rerender(); return; }
+    var gone = L.items.filter(function(x){ return x.id === id; })[0];
+    L.items = L.items.filter(function(x){ return x.id !== id; });
+    var reset = L.form && L.form.id === id;
+    if(reset){ syncForm(); L.form = blankForm(); }
+    flash("Đã xoá “" + (gone ? gone.title : "") + "”", reset);
+  }).catch(function(){ L.err = "Mất kết nối, chưa xoá được."; rerender(); });
+}
+function addMembers(names){
+  names = names.map(function(s){ return s.replace(/\s+/g, " ").trim(); })
+               .filter(function(s, i, a){ return s && a.indexOf(s) === i; })
+               .filter(function(s){ return !L.members.some(function(m){ return m.name.toLowerCase() === s.toLowerCase(); }); });
+  if(!names.length){ L.memberMsg = "Tên này đã có trong danh sách."; rerender(); return; }
+  L.busy = true; L.memberMsg = ""; rerender();
+  var base = L.members.length, chain = Promise.resolve();
+  names.forEach(function(nm, i){
+    chain = chain.then(function(){
+      return api("PUT", "members/" + newId("m_"), { name: nm, order: base + i }).then(function(r){
+        if(r.__status !== 200) throw new Error(r.error || "Không thêm được.");
+        L.members.push(r.member);
+      });
+    });
+  });
+  chain.then(function(){ L.busy = false; flash("Đã thêm " + names.join(", ")); })
+       .catch(function(e){ L.busy = false; L.memberMsg = e.message || "Không thêm được."; rerender(); });
+}
+function deleteMember(id){
+  if(L.delArm !== "m:" + id){
+    L.delArm = "m:" + id; render();
+    clearTimeout(deleteMember._t);
+    deleteMember._t = setTimeout(function(){ L.delArm = ""; if(state.tab === "items") rerender(); }, 3500);
+    return;
+  }
+  L.delArm = "";
+  api("DELETE", "members/" + id).then(function(r){
+    if(r.__status !== 200){ L.memberMsg = r.error || "Không xoá được."; rerender(); return; }
+    var nm = memberName(id);
+    L.members = L.members.filter(function(m){ return m.id !== id; });
+    if(L.form) delete L.form.participants[id];
+    if(L.who === id) L.who = "all";
+    flash("Đã xoá " + nm);
+  }).catch(function(){ L.memberMsg = "Mất kết nối, chưa xoá được."; rerender(); });
+}
+
+function shareOf(it){ return it.amount ? it.amount / it.participants.length : 0; }
+function formHint(){
+  var f = L.form;
+  var n = Object.keys(f.participants).filter(function(k){ return f.participants[k]; }).length;
+  var amt = f.amount === "" ? 0 : Number(f.amount);
+  if(!n && !amt) return "";
+  var s = n + " người";
+  if(amt) s += " · " + vnd(amt) + (n ? " · " + vnd(amt / n) + "/người" : "");
+  return s;
+}
+
+function viewItems(){
+  if(L.status === "idle" || L.status === "loading"){
+    return '<div class="card"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:110px;margin-top:12px"></div></div>' +
+           '<div class="card"><div class="sk" style="height:12px;width:30%"></div><div class="sk" style="height:70px;margin-top:12px"></div></div>';
+  }
+  if(L.status === "no_api"){
+    return '<div class="card" id="ledger"><div class="ttl"><h2>Hạng mục</h2></div>' +
+      '<div class="note">Tab này lưu dữ liệu vào database nên chỉ chạy trên bản đã deploy lên Vercel. ' +
+      'Trang đang mở không có máy chủ đi kèm (ví dụ bản xem thử), nên chưa ghi được gì.</div></div>';
+  }
+  if(L.status === "no_db"){
+    return '<div class="card" id="ledger"><div class="ttl"><h2>Chưa nối database</h2></div>' +
+      '<div class="note">Code đã sẵn sàng, chỉ thiếu database MongoDB. Làm một lần trên Vercel:</div>' +
+      '<ol class="steps"><li>Mở project <b>apartment-expenses</b> → tab <b>Storage</b>.</li>' +
+      '<li>Chọn <b>Create Database</b> → <b>MongoDB Atlas</b>, gói miễn phí là đủ.</li>' +
+      '<li>Nối database vào project này. Vercel tự thêm biến <code>MONGODB_URI</code>.</li>' +
+      '<li>Vào <b>Deployments</b>, bấm <b>Redeploy</b> bản mới nhất để biến có hiệu lực.</li></ol>' +
+      '<div class="btnrow" style="margin-top:12px"><button class="btn pri" data-act="retry">Kiểm tra lại</button></div></div>';
+  }
+  if(L.status === "need_token"){
+    return '<div class="card" id="ledger"><div class="ttl"><h2>Nhập mã truy cập</h2></div>' +
+      '<div class="note">Dữ liệu hạng mục được khoá bằng mã. Hỏi người quản lý app, nhập một lần là máy này nhớ.</div>' +
+      '<div style="display:flex;gap:8px;margin-top:12px"><input type="password" id="lfToken" placeholder="Mã truy cập" autocomplete="off" style="flex:1">' +
+      '<button class="btn pri" data-act="token">Mở</button></div>' +
+      (L.msg ? '<div class="ferr">' + esc(L.msg) + '</div>' : "") + '</div>';
+  }
+  if(L.status === "error"){
+    return '<div id="ledger"><div class="err">' + esc(L.msg || "Có lỗi khi tải dữ liệu.") + '</div>' +
+      '<div class="btnrow" style="margin-top:12px"><button class="btn pri" data-act="retry">Thử lại</button></div></div>';
+  }
+
+  var h = '<div id="ledger" style="display:flex;flex-direction:column;gap:14px">';
+  if(L.flash) h += '<div class="flash" role="status">' + esc(L.flash) + '</div>';
+
+  /* chưa có ai: mời thêm người trước */
+  if(!L.members.length){
+    var seed = sheetNames();
+    h += '<div class="card"><div class="ttl"><h2>Thêm người trong nhà</h2></div>' +
+      '<div class="note">Cần có danh sách người trước khi ghi hạng mục.</div>' +
+      (seed.length ? '<div class="btnrow" style="margin-top:12px"><button class="btn pri" data-act="seed"' + (L.busy ? " disabled" : "") +
+        '>Thêm ' + seed.length + ' người từ sheet</button></div><div class="hint" style="margin-top:6px">' + esc(seed.join(", ")) + '</div>' : "") +
+      '<div class="flabel">Hoặc gõ tên</div><div style="display:flex;gap:8px"><input type="text" id="lfMember" placeholder="Tên người" style="flex:1">' +
+      '<button class="btn" data-act="addMember"' + (L.busy ? " disabled" : "") + '>Thêm</button></div>' +
+      (L.memberMsg ? '<div class="ferr">' + esc(L.memberMsg) + '</div>' : "") + '</div>';
+    return h + '</div>';
+  }
+
+  /* form thêm / sửa */
+  var f = L.form || (L.form = blankForm());
+  var editing = !!f.id;
+  h += '<div class="card"><div class="ttl"><h2>' + (editing ? "Sửa hạng mục" : "Thêm hạng mục") + '</h2>' +
+    (editing ? '<button class="lnk" data-act="cancel">Huỷ sửa</button>' : "") + '</div>' +
+    '<div class="quick">' + ["Ăn sáng", "Ăn trưa", "Ăn tối", "Đi chợ", "Cà phê"].map(function(q){
+      return '<button class="chip" data-act="quick" data-v="' + q + '">' + q + '</button>';
+    }).join("") + '</div>' +
+    '<input type="text" id="lfTitle" maxlength="80" placeholder="Tên hạng mục, ví dụ Ăn trưa" value="' + esc(f.title) + '">' +
+    '<div class="frow" style="margin-top:8px">' +
+      '<input type="date" id="lfDate" aria-label="Ngày" value="' + esc(f.date) + '">' +
+      '<input type="text" id="lfAmount" inputmode="numeric" placeholder="Số tiền (tuỳ chọn)" value="' + esc(f.amount) + '">' +
+    '</div>' +
+    '<div class="flabel"><span>Người tham gia</span><span style="display:flex;gap:12px">' +
+      '<button class="lnk" data-act="all">Chọn hết</button><button class="lnk" data-act="none">Bỏ hết</button></span></div>' +
+    '<div class="picks">' + L.members.map(function(m){
+      return '<button class="pill" data-act="toggle" data-id="' + esc(m.id) + '" aria-pressed="' + (!!f.participants[m.id]) + '">' + esc(m.name) + '</button>';
+    }).join("") + '</div>' +
+    '<div class="flabel">Người trả (tuỳ chọn)</div>' +
+    '<select id="lfPayer"><option value="">Chưa ghi</option>' + L.members.map(function(m){
+      return '<option value="' + esc(m.id) + '"' + (f.payer === m.id ? " selected" : "") + '>' + esc(m.name) + '</option>';
+    }).join("") + '</select>' +
+    '<input type="text" id="lfNote" maxlength="300" placeholder="Ghi chú (tuỳ chọn)" value="' + esc(f.note) + '" style="margin-top:8px">' +
+    '<div class="hintline" id="lfHint">' + esc(formHint()) + '</div>' +
+    (L.err ? '<div class="ferr">' + esc(L.err) + '</div>' : "") +
+    '<div class="btnrow" style="margin-top:12px"><button class="btn pri" data-act="save"' + (L.saving ? " disabled" : "") + '>' +
+      (L.saving ? "Đang lưu…" : editing ? "Lưu thay đổi" : "Lưu hạng mục") + '</button></div></div>';
+
+  /* lọc theo người */
+  var list = L.who === "all" ? L.items : L.items.filter(function(it){
+    return it.participants.indexOf(L.who) >= 0 || it.payer === L.who;
+  });
+  h += '<div class="filters" role="group" aria-label="Lọc theo người">' +
+    '<button class="pill" data-act="who" data-id="all" aria-pressed="' + (L.who === "all") + '">Tất cả</button>' +
+    L.members.map(function(m){
+      return '<button class="pill" data-act="who" data-id="' + esc(m.id) + '" aria-pressed="' + (L.who === m.id) + '">' + esc(m.name) + '</button>';
+    }).join("") + '</div>';
+
+  if(L.who !== "all"){
+    var joined = L.items.filter(function(it){ return it.participants.indexOf(L.who) >= 0; });
+    var mine = joined.reduce(function(a, it){ return a + shareOf(it); }, 0);
+    var paid = L.items.filter(function(it){ return it.payer === L.who && it.amount; })
+                      .reduce(function(a, it){ return a + it.amount; }, 0);
+    h += '<div class="diff"><span><b>' + esc(memberName(L.who)) + '</b> tham gia ' + joined.length + ' hạng mục · phần mình ' +
+      esc(vnd(mine)) + ' · đã trả ' + esc(vnd(paid)) + '</span></div>';
+  }else{
+    h += '<div class="diff"><span>' + L.items.length + ' hạng mục · đã ghi ' +
+      esc(vnd(L.items.reduce(function(a, it){ return a + (it.amount || 0); }, 0))) + '</span></div>';
+  }
+
+  if(!list.length){
+    h += '<div class="empty">' + (L.items.length ? "Người này chưa có hạng mục nào." : "Chưa có hạng mục nào. Thêm cái đầu tiên ở trên.") + '</div>';
+  }else{
+    var groups = byKey(list, function(it){ return it.date; });
+    h += groups.map(function(g){
+      return '<div class="card flat"><div class="dayhead"><b>' + esc(dlong(isoDate(g.key))) + '</b><span>' + g.items.length + ' hạng mục</span></div>' +
+        '<div class="rows">' + g.items.map(function(it){
+          var armed = L.delArm === "it:" + it.id;
+          return '<div class="row"><div class="main"><div class="nm">' + esc(it.title) + '</div>' +
+            '<div class="me">' + it.participants.map(function(p){
+              return '<span class="chip' + (p === L.who ? " me-on" : "") + '">' + esc(memberName(p)) + '</span>';
+            }).join("") + '</div>' +
+            '<div class="me">' + (it.payer ? '<span>' + esc(memberName(it.payer)) + ' trả</span>' : "") +
+              (it.amount ? (it.payer ? '<span>·</span>' : "") + '<span>' + esc(vnd(shareOf(it))) + '/người</span>' : "") +
+              (it.note ? '<span>·</span><span>' + esc(it.note) + '</span>' : "") + '</div>' +
+            '<div class="acts"><button class="lnk" data-act="edit" data-id="' + esc(it.id) + '">Sửa</button>' +
+              '<button class="lnk warn" data-act="del" data-id="' + esc(it.id) + '">' + (armed ? "Bấm lần nữa để xoá" : "Xoá") + '</button></div>' +
+            '</div><div class="amt">' + (it.amount ? esc(vnd(it.amount)) : "—") + '</div></div>';
+        }).join("") + '</div></div>';
+    }).join("");
+  }
+
+  /* quản lý người */
+  h += '<div class="card"><div class="ttl"><h2>Người trong nhà</h2><em>' + L.members.length + ' người</em></div><div class="rows">' +
+    L.members.map(function(m){
+      var armed = L.delArm === "m:" + m.id;
+      return '<div class="row"><div class="main"><div class="nm">' + esc(m.name) + '</div></div>' +
+        '<button class="lnk warn" data-act="delMember" data-id="' + esc(m.id) + '">' + (armed ? "Bấm lần nữa để xoá" : "Xoá") + '</button></div>';
+    }).join("") + '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="lfMember" placeholder="Thêm người" style="flex:1">' +
+    '<button class="btn" data-act="addMember"' + (L.busy ? " disabled" : "") + '>Thêm</button></div>' +
+    (L.memberMsg ? '<div class="ferr">' + esc(L.memberMsg) + '</div>' : "") +
+    '<div class="note" style="margin-top:10px">Dữ liệu tab này lưu trong database riêng, không ghi gì vào Google Sheet.</div></div>';
+
+  return h + '</div>';
+}
+
+function wireItems(){
+  var root = document.getElementById("ledger");
+  if(!root) return;
+  root.addEventListener("click", function(e){
+    var b = e.target.closest("[data-act]"); if(!b || b.disabled) return;
+    var act = b.dataset.act, id = b.dataset.id;
+    syncForm();
+    if(act !== "del" && act !== "delMember") L.delArm = "";
+    if(act === "retry") return ledgerLoad();
+    if(act === "token"){
+      var t = (document.getElementById("lfToken") || {}).value || "";
+      if(!t.trim()) return;
+      tokenSet(t.trim()); L.msg = ""; return ledgerLoad();
+    }
+    if(act === "seed") return addMembers(sheetNames());
+    if(act === "addMember"){
+      var inp = document.getElementById("lfMember");
+      if(inp && inp.value.trim()) addMembers([inp.value]);
+      return;
+    }
+    if(act === "delMember") return deleteMember(id);
+    if(act === "quick"){ L.form.title = b.dataset.v; L.err = ""; render(); var t2 = document.getElementById("lfTitle"); if(t2) t2.focus(); return; }
+    if(act === "toggle"){ L.form.participants[id] = !L.form.participants[id]; L.err = ""; return render(); }
+    if(act === "all"){ L.members.forEach(function(m){ L.form.participants[m.id] = true; }); return render(); }
+    if(act === "none"){ L.form.participants = {}; return render(); }
+    if(act === "save") return saveItem();
+    if(act === "cancel"){ L.form = blankForm(); L.err = ""; return render(); }
+    if(act === "edit"){
+      var it = L.items.filter(function(x){ return x.id === id; })[0];
+      if(it){ L.form = formFrom(it); L.err = ""; render(); window.scrollTo(0, 0); }
+      return;
+    }
+    if(act === "del") return deleteItem(id);
+    if(act === "who"){ L.who = id; return render(); }
+  });
+  var amt = document.getElementById("lfAmount");
+  if(amt) amt.addEventListener("input", function(){
+    var raw = amt.value.replace(/[^\d]/g, "");
+    if(raw !== amt.value) amt.value = raw;
+    L.form.amount = raw;
+    var hint = document.getElementById("lfHint"); if(hint) hint.textContent = formHint();
+  });
+  ["lfMember", "lfToken"].forEach(function(fid){
+    var el = document.getElementById(fid);
+    if(el) el.addEventListener("keydown", function(e){
+      if(e.key !== "Enter") return;
+      e.preventDefault();
+      var btn = root.querySelector('[data-act="' + (fid === "lfMember" ? "addMember" : "token") + '"]');
+      if(btn) btn.click();
+    });
+  });
+}
+
 function render(){
   document.getElementById("shName").textContent = state.current;
   document.getElementById("shMeta").textContent = state.loading ? "đang đọc…"
@@ -1286,6 +1676,7 @@ function render(){
 
   var html;
   if(state.tab === "sheets") html = viewSheets();
+  else if(state.tab === "items") html = viewItems();
   else if(state.loading && !state.data) html = skeleton();
   else if(state.error) html = '<div class="err">' + esc(state.error) + '</div><div class="btnrow" style="margin-top:12px"><button class="btn pri" id="retry">Thử lại</button></div>';
   else if(!state.data) html = '<div class="empty">Chưa có dữ liệu.</div>';
@@ -1353,16 +1744,21 @@ function wire(){
   var sc = document.getElementById("scanBtn"); if(sc) sc.addEventListener("click", scan);
   var rb = document.getElementById("reloadBtn"); if(rb) rb.addEventListener("click", reload);
   var rt = document.getElementById("retry"); if(rt) rt.addEventListener("click", reload);
+  wireItems();
 }
 
 Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(t){
   t.addEventListener("click", function(){
+    syncForm();
     state.tab = t.dataset.tab;
     if(state.tab !== "sheets") state.msg = "";
     window.scrollTo(0, 0); render();
+    if(state.tab === "items" && (L.status === "idle" || L.status === "error" || L.status === "no_db")) ledgerLoad();
   });
 });
-document.getElementById("btnReload").addEventListener("click", reload);
+document.getElementById("btnReload").addEventListener("click", function(){
+  if(state.tab === "items") ledgerLoad(); else reload();
+});
 document.getElementById("btnTheme").addEventListener("click", function(){
   var cur = document.documentElement.getAttribute("data-theme");
   var next = cur === "dark" ? "light" : cur === "light" ? "dark"
