@@ -2,10 +2,16 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0E6A54">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#F6F8F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1411" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Chi Tiêu Nhà">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <style>
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;font:14px system-ui,-apple-system,sans-serif}
@@ -51,6 +57,13 @@ img{max-width:100%}
 }
 *{box-sizing:border-box}
 html,body{height:100%}
+/* Khoá như app: không phóng to, không kéo lệch, không nảy, chữ không tự to lên khi xoay máy */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:pan-x pan-y;overscroll-behavior:none}
+html,body{max-width:100%}
+body{overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+/* clip cắt phần thừa mà không biến .app thành vùng cuộn, nên thanh trên cùng vẫn dính */
+.app{overflow-x:clip;max-width:100vw}
+.tabbar,.topbar,.tab,.pill,.btn,.iconbtn,.chip,.lnk{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 body{background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
 .wrap{width:100%;max-width:560px;margin:0 auto;padding-inline:16px}
 .app{min-height:100%;display:flex;flex-direction:column}
@@ -158,13 +171,17 @@ section{display:flex;flex-direction:column;gap:14px}
 .pill[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#FFFFFF}
 :root[data-theme="dark"] .pill[aria-pressed="true"],:root[data-theme="dark"] .btn.pri{color:#07140F}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .pill[aria-pressed="true"],:root:not([data-theme="light"]) .btn.pri{color:#07140F}}
-input[type="search"],input[type="text"],input[type="date"],input[type="password"],select{width:100%;min-width:0;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-family:inherit;font-size:15px}
+/* 16px trở lên thì Safari không tự phóng to trang khi bấm vào ô nhập */
+input[type="search"],input[type="text"],input[type="date"],input[type="password"],select{display:block;width:100%;max-width:100%;min-width:0;min-height:44px;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-family:inherit;font-size:16px;line-height:1.25}
 select{appearance:auto}
+/* Ô ngày của Safari giữ một độ rộng tối thiểu riêng và tràn khỏi lưới; bỏ giao diện gốc để nó co theo ô */
+input[type="date"]{-webkit-appearance:none;appearance:none;text-align:left}
+input[type="date"]::-webkit-date-and-time-value{text-align:left;margin:0}
 
 /* tab Note */
 .flabel{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 6px}
 .flabel:first-child{margin-top:0}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.frow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
 .frow > *{min-width:0}
 .lnk{background:none;border:0;padding:0;color:var(--accent-ink);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .lnk.warn{color:var(--warn)}
@@ -1679,7 +1696,7 @@ function viewItems(){
     '<input type="text" id="lfTitle" maxlength="80" placeholder="Nội dung, ví dụ Ăn trưa" value="' + esc(f.title) + '">' +
     '<div class="frow" style="margin-top:8px">' +
       '<input type="date" id="lfDate" aria-label="Ngày" value="' + esc(f.date) + '">' +
-      '<input type="text" id="lfAmount" inputmode="numeric" placeholder="Số tiền (tuỳ chọn)" value="' + esc(f.amount) + '">' +
+      '<input type="text" id="lfAmount" inputmode="numeric" placeholder="Số tiền" value="' + esc(f.amount) + '">' +
     '</div>' +
     '<div class="flabel"><span>Người tham gia</span><span style="display:flex;gap:12px">' +
       '<button class="lnk" data-act="all">Chọn hết</button><button class="lnk" data-act="none">Bỏ hết</button></span></div>' +
