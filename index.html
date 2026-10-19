@@ -146,6 +146,23 @@ section{display:flex;flex-direction:column;gap:14px}
 .dayitem .nm{font-size:14.5px;font-weight:500}
 .dayitem .me{font-size:12px;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .dayitem .amt{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:14px;font-weight:500;white-space:nowrap;flex:none}
+.sechead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 2px 0}
+.sechead h2{margin:0;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sechead span{font-family:var(--font-num);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.daycard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.daycard .dtop{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;background:var(--surface-2)}
+.daycard .dname{font-size:15px;font-weight:700}
+.daycard .dsum{font-family:var(--font-num);font-size:18px;font-weight:600;color:var(--warn);font-variant-numeric:tabular-nums;white-space:nowrap}
+.daycard .ditems{padding:2px 14px}
+.daycard .ditem{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.daycard .ditem:first-child{border-top:0}
+.daycard .ditem .t{min-width:0}
+.daycard .ditem .t b{display:block;font-size:14px;font-weight:500;overflow-wrap:anywhere}
+.daycard .ditem .t span{font-size:12px;color:var(--muted)}
+.daycard .ditem .v{flex:none;font-family:var(--font-num);font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.daycard .dck{display:flex;gap:8px;align-items:baseline;padding:10px 14px;border-top:1px dashed var(--line);font-size:13px}
+.daycard .dck b{flex:none;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.daycard .dck span{min-width:0;overflow-wrap:anywhere;color:var(--accent-ink);font-weight:600}
 .sublist{margin-top:8px;display:flex;flex-direction:column;gap:4px;padding-left:10px;border-left:2px solid var(--line)}
 .sublist div{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted)}
 .sublist span:first-child{min-width:0;overflow-wrap:anywhere}
@@ -839,7 +856,6 @@ function viewOverview(){
       '<div><div class="k">Khoản lớn nhất</div><div class="v">' + esc(short(items.reduce(function(a, b){ return Math.max(a, b.amount || 0); }, 0))) + '</div></div>' +
     '</div></div>';
 
-  if(noPrice) h += '<div class="diff"><span>' + noPrice + ' khoản chưa điền số tiền, chưa được cộng vào tổng.</span></div>';
 
   if(dayGroups.length){
     h += '<div class="card"><div class="ttl"><h2>Chi theo ngày</h2><em>' + esc(short(total)) + '</em></div>' +
@@ -862,7 +878,7 @@ function viewOverview(){
           '</div><div class="amt">' + esc(vnd(day.total)) + '</div></div>' +
           (day.note ? '<div class="ck"><b>CK cho</b><span>' + esc(day.note) + '</span></div>' : "") +
           '</div>';
-      }).join("") + '</div><div class="note" style="margin-top:12px">Dòng CK là nội dung cột “CK mỗi người” trong sheet: số tiền mỗi người chuyển cho người đứng ra trả hôm đó.</div></div>';
+      }).join("") + '</div></div>';
   }
   return h + recentHTML(items);
 }
@@ -956,7 +972,7 @@ function matrixTable(d){
     }).join("") +
     (d.totalRow ? '<tr class="total"><td>Tổng</td><td class="n">' + esc(short(d.totalRow.total != null ? d.totalRow.total : d.totalRow.sum)) + "</td>" +
       d.totalRow.vals.map(function(v){ return '<td class="n">' + esc(short(v || 0)) + "</td>"; }).join("") + "</tr>" : "") +
-    '</tbody></table></div><div class="note" style="margin-top:10px">k = nghìn, tr = triệu.</div></div>';
+    '</tbody></table></div></div>';
 
   h += '<div class="card"><div class="ttl"><h2>Chi tiết từng danh mục</h2></div><div class="rows">' + d.cats.map(function(c){
     return '<div class="row"><div class="main"><div class="nm">' + esc(c.name) + '</div><div class="me">' +
@@ -1156,26 +1172,24 @@ function personPay(d, g, moves){
     return { day: day, v: day.shares[g.col] ? day.shares[g.col].value : 0 };
   }).filter(function(x){ return x.v > 0.5; });
 
-  h += '<div class="card"><div class="ttl"><h2>Các mục phải trả</h2><em>' + esc(vnd(g.owed)) + '</em></div>';
+  /* mỗi ngày một thẻ riêng: ngày + số phải trả nổi bật, các món mua hôm đó, dòng CK */
+  h += '<div class="sechead"><h2>Các mục phải trả</h2><span>' + esc(vnd(g.owed)) + '</span></div>';
   if(!days.length){
-    h += '<div class="empty" style="padding:14px 0">' + (g.orphan ? "Người này chưa có cột trong bảng chia của tab này." : "Tuần này không có phần nào phải trả.") + '</div>';
+    h += '<div class="card"><div class="empty" style="padding:14px 0">Không có mục nào.</div></div>';
   }else{
-    h += '<div>' + days.map(function(x){
+    h += days.map(function(x){
       var dt = dayDate(x.day.label, d);
       var bought = d.items.filter(function(it){ return it.date && dshort(it.date) === x.day.label; });
-      var pct = x.day.total ? Math.round(x.v / x.day.total * 100) : 0;
-      return '<div class="dayitem"><div class="head"><div class="main"><div class="nm">' + esc(dt ? dlong(dt) : "Ngày " + x.day.label) + '</div>' +
-          '<div class="me"><span>' + pct + '% trong ' + n(x.day.total) + ' đ cả nhà chia hôm đó</span></div></div>' +
-          '<div class="amt">' + esc(vnd(x.v)) + '</div></div>' +
-        (bought.length ? '<div class="sublist">' + bought.map(function(it){
-            return '<div><span>' + esc(it.name) + (it.qty ? ' · ' + esc(it.qty) : "") + ' — ' + esc(it.buyer) + '</span>' +
-              '<span>' + (it.amount == null ? "—" : n(it.amount)) + '</span></div>';
+      return '<div class="daycard"><div class="dtop"><span class="dname">' + esc(dt ? dlong(dt) : "Ngày " + x.day.label) + '</span>' +
+          '<span class="dsum">' + esc(vnd(x.v)) + '</span></div>' +
+        (bought.length ? '<div class="ditems">' + bought.map(function(it){
+            return '<div class="ditem"><div class="t"><b>' + esc(it.name) + (it.qty ? ' · ' + esc(it.qty) : "") + '</b>' +
+              '<span>' + esc(it.buyer) + ' mua</span></div><div class="v">' + (it.amount == null ? "—" : n(it.amount)) + '</div></div>';
           }).join("") + '</div>' : "") +
-        (x.day.note ? '<div class="ck"><b>CK cho</b><span>' + esc(x.day.note) + '</span></div>' : "") +
+        (x.day.note ? '<div class="dck"><b>CK cho</b><span>' + esc(x.day.note) + '</span></div>' : "") +
         '</div>';
-    }).join("") + '</div>';
+    }).join("");
   }
-  h += '</div>';
 
   /* các khoản người này đã ứng */
   var mineBought = d.items.filter(function(it){ return it.amount != null && g.parts.indexOf(nameKey(it.buyer)) >= 0; });
@@ -1187,9 +1201,6 @@ function personPay(d, g, moves){
           (it.leftQty ? '<span class="chip ok">còn ' + esc(it.leftQty) + '</span>' : "") +
           '</div></div><div class="amt">' + esc(vnd(it.amount)) + '</div></div>';
       }).join("") + '</div>' +
-      (g.held > 1 ? '<div class="note" style="margin-top:10px">' + esc(n(g.held)) + ' đ trong số này là đồ dư chưa đưa vào bảng chia, nên chưa ai trả lại phần đó.</div>' : "") +
-      (g.uncovered > 1 ? '<div class="note" style="margin-top:6px">Ngày ' + esc(g.gapDays.map(function(x){ return x.day; }).join(", ")) +
-        ' các cột chia cộng không đủ, nên được nhận về ít hơn ' + esc(n(g.uncovered)) + ' đ. Xem chi tiết ở mục Cả nhà.</div>' : "") +
       '</div>';
   }
   return h;
@@ -1249,32 +1260,27 @@ function viewPay(){
 
   /* Vì sao tiền ứng không khớp phần chia */
   if(heldTotal > 1 || res.gaps.length){
-    h += '<div class="card"><div class="ttl"><h2>Vì sao còn ' + esc(vnd(paidTotal - owedTotal)) + ' chưa chia</h2></div>';
+    h += '<div class="card"><div class="ttl"><h2>Chưa chia</h2><em>' + esc(vnd(paidTotal - owedTotal)) + '</em></div>';
     if(heldTotal > 1){
-      h += '<div class="sub2">Đồ dư người mua giữ lại · ' + esc(vnd(heldTotal)) + '</div><div class="rows">' +
+      h += '<div class="sub2">Đồ dư · ' + esc(vnd(heldTotal)) + '</div><div class="rows">' +
         res.held.map(function(r){
           return '<div class="row"><div class="main"><div class="nm">' + esc(r.name) + '</div><div class="me"><span>ngày ' +
-            esc(r.day) + ': tiền mua nhiều hơn ô Tổng cộng</span></div></div><div class="amt">' + esc(vnd(r.amt)) + '</div></div>';
+            esc(r.day) + '</span></div></div><div class="amt">' + esc(vnd(r.amt)) + '</div></div>';
         }).join("") +
         res.loose.map(function(r){
           return '<div class="row"><div class="main"><div class="nm">' + esc(r.name) + '</div><div class="me"><span>' +
-            esc(r.item) + ': chưa có ngày trong bảng chia</span></div></div><div class="amt">' + esc(vnd(r.amt)) + '</div></div>';
+            esc(r.item) + '</span></div></div><div class="amt">' + esc(vnd(r.amt)) + '</div></div>';
         }).join("") +
-        '</div><div class="note" style="margin:8px 0 14px">Phần này chưa ai nợ. Người mua giữ lại, chia vào ngày dùng tới.</div>';
+        '</div><div style="height:12px"></div>';
     }
     if(res.gaps.length){
-      h += '<div class="sub2">Ngày các cột chia cộng không đủ · ' + esc(vnd(gapTotal)) + '</div><div class="rows">' +
+      h += '<div class="sub2">Ngày chia thiếu · ' + esc(vnd(gapTotal)) + '</div><div class="rows">' +
         res.gaps.map(function(r){
-          var fix = r.hint ? '<div class="me"><span class="chip warn">' + r.hint.map(function(x){
-              return 'Cột ' + x.name + ' (' + x.people + ' người) chỉ ghi 1 suất ' + n(x.now) + ' đ. Ghi ' + n(x.should) + ' đ thì khớp';
-            }).join('; ') + '</span></div>' : "";
-          var who = r.who.length ? '<div class="me"><span>Tạm trừ vào người ứng hôm đó: ' + r.who.map(function(x){
-              return esc(x.name) + ' ' + n(x.amt);
-            }).join(', ') + '</span></div>' : "";
+          var fix = "", who = "";
           return '<div class="row"><div class="main"><div class="nm">Ngày ' + esc(r.day) + '</div><div class="me"><span>cộng các cột ' +
             n(r.sum) + ' · Tổng cộng ' + n(r.credited) + '</span></div>' + fix + who + '</div><div class="amt" style="color:var(--warn)">' +
             esc(vnd(r.gap)) + '</div></div>';
-        }).join("") + '</div><div class="note" style="margin-top:8px">Sửa ô đó trong sheet rồi tải lại, phần thiếu tự biến mất.</div>';
+        }).join("") + '</div>';
     }
     h += '</div>';
   }
@@ -1321,8 +1327,6 @@ function matrixPay(d){
             (r.c.total ? '<span>cả nhà ' + esc(vnd(r.c.total)) + '</span>' : "") + '</div></div>' +
             '<div class="amt">' + esc(vnd(r.v)) + '</div></div>';
         }).join("") + '</div>' +
-        (none.length ? '<div class="note" style="margin-top:10px">Chưa có số hoặc không phải đóng: ' +
-          esc(none.map(function(r){ return r.c.name; }).join(", ")) + '.</div>' : "") +
       '</div>';
   }
 
@@ -1333,7 +1337,7 @@ function matrixPay(d){
       (p.group ? '<span class="chip">' + esc(p.group) + '</span>' : "") +
       '<span>' + (grand ? Math.round(p.value / grand * 100) : 0) + '% tổng</span></div></div>' +
       '<div class="amt" style="color:var(--warn)">' + esc(vnd(p.value)) + '</div></div>';
-  }).join("") + '</div><div class="note" style="margin-top:10px">Tiền nhà chia sẵn theo người trong sheet, không ai ứng hộ nên không có khoản nhận lại.</div></div>';
+  }).join("") + '</div></div>';
   return h;
 }
 
@@ -1356,7 +1360,7 @@ function viewStats(){
       var mx = names.reduce(function(a, n){ return Math.max(a, sums[n]); }, 0);
       h += '<div class="card"><div class="ttl"><h2>Mỗi người phải trả</h2><em>theo bảng chia</em></div>' +
         barsHTML(names.map(function(n, i){ return { label: n, value: sums[n], color: colorOf(i) }; }), mx) +
-        '<div class="note" style="margin-top:10px">Cộng dồn các cột chia tiền trong sheet, không phải số tiền đã ứng.</div></div>';
+        '</div>';
     }
   }
 
@@ -1416,16 +1420,10 @@ function viewSheets(){
       '<button class="pill" data-v="auto" aria-pressed="' + (state.mode === "auto") + '">Tự động</button>' +
       '<button class="pill" data-v="live" aria-pressed="' + (state.mode === "live") + '">Chỉ Google Sheet</button>' +
       '<button class="pill" data-v="snapshot" aria-pressed="' + (state.mode === "snapshot") + '">Chỉ bản sao</button>' +
-    '</div><div class="hint" style="margin-top:10px">' +
-      (state.mode === "auto"
-        ? "App thử gọi Google Sheet trước; nơi nào chặn kết nối thì tự dùng bản sao kèm theo. Đem file này lên hosting thật là nó tự chạy dữ liệu trực tiếp."
-        : state.mode === "live" ? "Chỉ đọc Google Sheet. Nếu bị chặn, app báo lỗi thay vì dùng bản sao."
-        : "Chỉ đọc bản sao kèm theo file, không gọi mạng.") +
     '</div>' +
     '<div class="diff" style="margin-top:12px"><span>Đang dùng: <b>' +
       (live ? "Google Sheet trực tiếp" : "bản sao (chụp " + SNAP_TAKEN + ")") + "</b>" +
       (state.fetchedAt ? " · đọc lúc " + hhmm(state.fetchedAt) : "") + '</span></div>' +
-    (state.liveNote ? '<div class="hint" style="margin-top:10px">' + esc(state.liveNote) + '</div>' : "") +
     '<div class="btnrow" style="margin-top:12px"><button class="btn pri" id="reloadBtn">Tải lại ngay</button>' +
     '<a class="btn" href="' + SHEET_URL + '" target="_blank" rel="noopener">Mở Google Sheet</a></div></div>';
 
@@ -1444,9 +1442,7 @@ function viewSheets(){
     '<button class="btn pri" id="addSheet">Thêm</button></div>' +
     '<div class="btnrow" style="margin-top:12px"><button class="btn" id="scanBtn"' + (state.busy ? " disabled" : "") + '>' +
       (state.busy === "scan" ? "Đang dò…" : "Tự dò tab theo tuần") + '</button></div>' +
-    (state.msg ? '<div class="hint" style="margin-top:10px">' + esc(state.msg) + '</div>' : "") +
-    '<div class="hint" style="margin-top:10px">Tab thêm bằng tay chỉ đọc được khi app chạy trực tiếp với Google Sheet. Bản sao chỉ có ' +
-      SNAP_SHEETS.length + ' tab gốc.</div></div>';
+    (state.msg ? '<div class="hint" style="margin-top:10px">' + esc(state.msg) + '</div>' : "") + '</div>';
   return h + src;
 }
 
@@ -1645,22 +1641,15 @@ function viewItems(){
   }
   if(L.status === "no_api"){
     return '<div class="card" id="ledger"><div class="ttl"><h2>Note</h2></div>' +
-      '<div class="note">Tab này lưu dữ liệu vào database nên chỉ chạy trên bản đã deploy lên Vercel. ' +
-      'Trang đang mở không có máy chủ đi kèm (ví dụ bản xem thử), nên chưa ghi được gì.</div></div>';
+      '<div class="empty" style="padding:14px 0">Chưa kết nối được máy chủ.</div></div>';
   }
   if(L.status === "no_db"){
     return '<div class="card" id="ledger"><div class="ttl"><h2>Chưa nối database</h2></div>' +
-      '<div class="note">Code đã sẵn sàng, chỉ thiếu database MongoDB. Làm một lần trên Vercel:</div>' +
-      '<ol class="steps"><li>Mở project <b>apartment-expenses</b> → tab <b>Storage</b>.</li>' +
-      '<li>Chọn <b>Create Database</b> → <b>MongoDB Atlas</b>, gói miễn phí là đủ.</li>' +
-      '<li>Nối database vào project này. Vercel tự thêm biến <code>MONGODB_URI</code>.</li>' +
-      '<li>Vào <b>Deployments</b>, bấm <b>Redeploy</b> bản mới nhất để biến có hiệu lực.</li></ol>' +
-      '<div class="btnrow" style="margin-top:12px"><button class="btn pri" data-act="retry">Kiểm tra lại</button></div></div>';
+      '<div class="btnrow"><button class="btn pri" data-act="retry">Kiểm tra lại</button></div></div>';
   }
   if(L.status === "need_token"){
     return '<div class="card" id="ledger"><div class="ttl"><h2>Nhập mã truy cập</h2></div>' +
-      '<div class="note">Dữ liệu note được khoá bằng mã. Hỏi người quản lý app, nhập một lần là máy này nhớ.</div>' +
-      '<div style="display:flex;gap:8px;margin-top:12px"><input type="password" id="lfToken" placeholder="Mã truy cập" autocomplete="off" style="flex:1">' +
+      '<div style="display:flex;gap:8px"><input type="password" id="lfToken" placeholder="Mã truy cập" autocomplete="off" style="flex:1">' +
       '<button class="btn pri" data-act="token">Mở</button></div>' +
       (L.msg ? '<div class="ferr">' + esc(L.msg) + '</div>' : "") + '</div>';
   }
@@ -1676,9 +1665,8 @@ function viewItems(){
   if(!L.members.length){
     var seed = sheetNames();
     h += '<div class="card"><div class="ttl"><h2>Thêm người trong nhà</h2></div>' +
-      '<div class="note">Cần có danh sách người trước khi ghi note.</div>' +
-      (seed.length ? '<div class="btnrow" style="margin-top:12px"><button class="btn pri" data-act="seed"' + (L.busy ? " disabled" : "") +
-        '>Thêm ' + seed.length + ' người từ sheet</button></div><div class="hint" style="margin-top:6px">' + esc(seed.join(", ")) + '</div>' : "") +
+      (seed.length ? '<div class="btnrow"><button class="btn pri" data-act="seed"' + (L.busy ? " disabled" : "") +
+        '>Thêm ' + seed.length + ' người từ sheet</button></div>' : "") +
       '<div class="flabel">Hoặc gõ tên</div><div style="display:flex;gap:8px"><input type="text" id="lfMember" placeholder="Tên người" style="flex:1">' +
       '<button class="btn" data-act="addMember"' + (L.busy ? " disabled" : "") + '>Thêm</button></div>' +
       (L.memberMsg ? '<div class="ferr">' + esc(L.memberMsg) + '</div>' : "") + '</div>';
@@ -1766,8 +1754,7 @@ function viewItems(){
     }).join("") + '</div>' +
     '<div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="lfMember" placeholder="Thêm người" style="flex:1">' +
     '<button class="btn" data-act="addMember"' + (L.busy ? " disabled" : "") + '>Thêm</button></div>' +
-    (L.memberMsg ? '<div class="ferr">' + esc(L.memberMsg) + '</div>' : "") +
-    '<div class="note" style="margin-top:10px">Dữ liệu tab này lưu trong database riêng, không ghi gì vào Google Sheet.</div></div>';
+    (L.memberMsg ? '<div class="ferr">' + esc(L.memberMsg) + '</div>' : "") + '</div>';
 
   return h + '</div>';
 }
