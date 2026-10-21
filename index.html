@@ -146,6 +146,8 @@ section{display:flex;flex-direction:column;gap:14px}
 .dayitem .nm{font-size:14.5px;font-weight:500}
 .dayitem .me{font-size:12px;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .dayitem .amt{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-size:14px;font-weight:500;white-space:nowrap;flex:none}
+.card > .me{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px}
+.row .me .chip.warn{white-space:normal;line-height:1.35;padding:3px 8px;border-radius:8px}
 .sechead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:6px 2px 0}
 .sechead h2{margin:0;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .sechead span{font-family:var(--font-num);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
@@ -1233,6 +1235,56 @@ function viewPay(){
         '>' + esc(short(paidTotal - owedTotal)) + '</div></div>' +
     '</div></div>';
 
+  /* Kiểm tra sheet: tiền ứng có khớp với bảng chia không, lệch ở đâu, vì sao */
+  var noPrice = d.items.filter(function(it){ return it.amount == null; });
+  var diff = paidTotal - owedTotal;
+  var clean = Math.abs(diff) <= 1000 && !noPrice.length && !res.gaps.length && heldTotal <= 1;
+  h += '<div class="card"><div class="ttl"><h2>Kiểm tra sheet</h2>' +
+    (clean ? '<span class="chip ok">Khớp</span>' : '<span class="chip warn">Lệch ' + esc(vnd(Math.abs(diff))) + '</span>') + '</div>';
+  if(clean){
+    h += '<div class="me"><span>Tiền ứng ' + esc(vnd(paidTotal)) + ' = tổng các cột chia ' + esc(vnd(owedTotal)) + '</span></div>';
+  }else{
+    h += '<div class="me" style="margin-bottom:10px"><span>Tiền ứng ' + esc(vnd(paidTotal)) + ' · tổng các cột chia ' + esc(vnd(owedTotal)) + '</span></div>';
+  }
+  if(res.gaps.length){
+    h += '<div class="sub2">Ngày chia thiếu · ' + esc(vnd(gapTotal)) + '</div><div class="rows">' +
+      res.gaps.map(function(r){
+        var why = r.gap < 0
+          ? 'Các cột cộng nhiều hơn tiền đã mua hôm đó'
+          : r.hint ? r.hint.map(function(x){
+              return 'Cột ' + x.name + ' (' + x.people + ' người) chỉ ghi 1 suất ' + n(x.now) + ' đ, đủ phải là ' + n(x.should) + ' đ';
+            }).join('; ')
+          : 'Chưa xác định được cột nào ghi thiếu';
+        var who = r.who.length ? (r.gap > 0 ? 'Đang trừ vào người ứng: ' : 'Đang giảm cho: ') + r.who.map(function(x){
+            return x.name + ' ' + n(Math.abs(x.amt));
+          }).join(', ') : "";
+        return '<div class="row"><div class="main"><div class="nm">Ngày ' + esc(r.day) + '</div>' +
+          '<div class="me"><span>cộng các cột ' + n(r.sum) + ' · Tổng cộng ' + n(r.credited) + '</span></div>' +
+          '<div class="me"><span class="chip warn">' + esc(why) + '</span></div>' +
+          (who ? '<div class="me"><span>' + esc(who) + '</span></div>' : "") +
+          '</div><div class="amt" style="color:var(--warn)">' + esc(vnd(r.gap)) + '</div></div>';
+      }).join("") + '</div>';
+  }
+  if(heldTotal > 1){
+    h += '<div class="sub2" style="margin-top:12px">Đồ dư người mua giữ lại · ' + esc(vnd(heldTotal)) + '</div><div class="rows">' +
+      res.held.map(function(r){
+        return '<div class="row"><div class="main"><div class="nm">' + esc(r.name) + '</div><div class="me"><span>ngày ' +
+          esc(r.day) + ' · tiền mua nhiều hơn ô Tổng cộng</span></div></div><div class="amt">' + esc(vnd(r.amt)) + '</div></div>';
+      }).join("") +
+      res.loose.map(function(r){
+        return '<div class="row"><div class="main"><div class="nm">' + esc(r.name) + '</div><div class="me"><span>' +
+          esc(r.item) + ' · chưa có dòng ngày trong bảng chia</span></div></div><div class="amt">' + esc(vnd(r.amt)) + '</div></div>';
+      }).join("") + '</div>';
+  }
+  if(noPrice.length){
+    h += '<div class="sub2" style="margin-top:12px">Chưa điền số tiền · ' + noPrice.length + ' món</div><div class="rows">' +
+      noPrice.map(function(it){
+        return '<div class="row"><div class="main"><div class="nm">' + esc(it.name) + '</div><div class="me"><span>' +
+          esc(it.buyer) + (it.date ? ' · ' + esc(dshort(it.date)) : "") + '</span></div></div><div class="amt">—</div></div>';
+      }).join("") + '</div>';
+  }
+  h += '</div>';
+
   /* Từng người: hiện luôn phép tính để ai cũng tự kiểm được */
   h += '<div class="card"><div class="ttl"><h2>Từng người</h2></div><div class="rows">' +
     groups.map(function(g){
@@ -1257,33 +1309,6 @@ function viewPay(){
             '</div></div><div class="amt">' + esc(vnd(m.amt)) + '</div></div>';
         }).join("") + '</div>'
       : '<div class="empty" style="padding:18px 0">Không ai nợ ai, mọi người đã cân bằng.</div>') + '</div>';
-
-  /* Vì sao tiền ứng không khớp phần chia */
-  if(heldTotal > 1 || res.gaps.length){
-    h += '<div class="card"><div class="ttl"><h2>Chưa chia</h2><em>' + esc(vnd(paidTotal - owedTotal)) + '</em></div>';
-    if(heldTotal > 1){
-      h += '<div class="sub2">Đồ dư · ' + esc(vnd(heldTotal)) + '</div><div class="rows">' +
-        res.held.map(function(r){
-          return '<div class="row"><div class="main"><div class="nm">' + esc(r.name) + '</div><div class="me"><span>ngày ' +
-            esc(r.day) + '</span></div></div><div class="amt">' + esc(vnd(r.amt)) + '</div></div>';
-        }).join("") +
-        res.loose.map(function(r){
-          return '<div class="row"><div class="main"><div class="nm">' + esc(r.name) + '</div><div class="me"><span>' +
-            esc(r.item) + '</span></div></div><div class="amt">' + esc(vnd(r.amt)) + '</div></div>';
-        }).join("") +
-        '</div><div style="height:12px"></div>';
-    }
-    if(res.gaps.length){
-      h += '<div class="sub2">Ngày chia thiếu · ' + esc(vnd(gapTotal)) + '</div><div class="rows">' +
-        res.gaps.map(function(r){
-          var fix = "", who = "";
-          return '<div class="row"><div class="main"><div class="nm">Ngày ' + esc(r.day) + '</div><div class="me"><span>cộng các cột ' +
-            n(r.sum) + ' · Tổng cộng ' + n(r.credited) + '</span></div>' + fix + who + '</div><div class="amt" style="color:var(--warn)">' +
-            esc(vnd(r.gap)) + '</div></div>';
-        }).join("") + '</div>';
-    }
-    h += '</div>';
-  }
 
   var notes = d.days.filter(function(day){ return day.note; });
   if(notes.length){
