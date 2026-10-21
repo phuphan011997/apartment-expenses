@@ -252,6 +252,75 @@ a{color:var(--accent-ink)}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 .note{font-size:12.5px;color:var(--muted);line-height:1.5}
 .diff{display:flex;gap:8px;align-items:center;font-size:12.5px;padding:9px 11px;border-radius:10px;background:var(--surface-2);color:var(--muted)}
+
+/* màu từng người (lấy từ sheet): nền nhạt, chữ đậm như trên sheet */
+.pchip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;background:var(--pc);color:#1E2723;font-size:12px;font-weight:600;white-space:nowrap;line-height:1.3}
+.pchip b{font-family:var(--font-num);font-weight:500;font-size:11.5px}
+.pchip.on{box-shadow:0 0 0 2px var(--accent)}
+.pdot{display:inline-block;width:9px;height:9px;border-radius:99px;background:var(--pc);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.32);flex:none;margin-right:6px;vertical-align:baseline}
+.pill .pdot{margin-right:6px}
+.row > .pdot{margin-top:7px;margin-right:0}
+
+/* công tắc Danh sách | Lịch */
+.seg{display:flex;gap:3px;padding:3px;border-radius:12px;background:var(--surface-2)}
+.seg button{flex:1;border:0;background:none;padding:8px 6px;border-radius:9px;font:inherit;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgba(0,0,0,.1)}
+
+/* lưới người × ngày ở Thanh toán */
+.gridwrap{overflow-x:auto;margin-inline:-14px;padding:0 14px 2px;-webkit-overflow-scrolling:touch}
+table.pgrid{border-collapse:separate;border-spacing:3px;width:100%;font-size:12px}
+.pgrid th,.pgrid td{padding:0;border:0;text-align:center;white-space:nowrap;background:none}
+.pgrid th{text-transform:none;letter-spacing:0;font-size:inherit}
+.pgrid thead th{padding:4px 2px;border-radius:8px;cursor:pointer;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
+.pgrid thead th span{display:block;font-size:10px}
+.pgrid thead th b{display:block;font-family:var(--font-num);font-size:11.5px;color:var(--fg)}
+.pgrid .pn{position:sticky;left:0;z-index:1;text-align:left;background:var(--surface);padding:0 4px 0 0}
+.pgrid .pn .pchip{font-size:11px;padding:3px 8px;max-width:96px;overflow:hidden;text-overflow:ellipsis}
+.pgrid td{height:34px;border-radius:8px;cursor:pointer}
+.pgrid .cell{display:flex;align-items:center;justify-content:center;height:30px;min-width:40px;border-radius:7px;background:var(--pc);color:#1E2723;font-family:var(--font-num);font-size:11px;font-weight:600}
+.pgrid .nil{display:block;height:30px;min-width:40px;border-radius:7px;border:1px dashed var(--line)}
+.pgrid .sel{background:var(--accent-soft)}
+.pgrid thead th.sel b{color:var(--accent-ink)}
+.pgrid tr.dim .cell{opacity:.22}
+.pgrid tr.dim .pn{opacity:.5}
+.pgrid tr.on .pn .pchip{box-shadow:0 0 0 2px var(--accent)}
+.pgrid tfoot td{height:auto;padding:4px 0}
+.pgrid tfoot th.pn{font-size:11px;font-weight:700;color:var(--muted)}
+.pgrid tfoot td b{display:block;font-family:var(--font-num);font-size:11px}
+.pgrid tfoot td span{display:block;font-size:9.5px;color:var(--muted)}
+.pgrid .tt{padding-left:6px;font-family:var(--font-num);font-size:11.5px;font-weight:600;color:var(--fg);cursor:default}
+.daycard .dpeople{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line)}
+.cnt{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;background:var(--fg);color:var(--bg);font-size:11.5px;font-weight:700;white-space:nowrap}
+.ditem .t span .pdot{width:7px;height:7px;margin-right:4px}
+
+/* thẻ note */
+.ncard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.ncard .ntop{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ncard .ntop b{font-size:15.5px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.ncard .ntop .amt{font-family:var(--font-num);font-size:15px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ncard .nmeta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
+.ncard .nchips{display:flex;flex-wrap:wrap;gap:6px}
+.ncard .nnote{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.ncard .acts{margin-top:0;padding-top:8px;border-top:1px solid var(--line)}
+.sechead .sub3{font-size:12px;color:var(--muted);font-family:inherit;font-weight:500}
+
+/* lịch tháng của Note */
+.calnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.calnav b{font-size:15px}
+.calnav .iconbtn{width:34px;height:34px}
+.cgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cw{text-align:center;font-size:10.5px;font-weight:700;color:var(--muted);padding-bottom:2px}
+.cday{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:62px;padding:4px 4px 5px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--fg);font:inherit;text-align:left;cursor:pointer;min-width:0;overflow:hidden}
+.cday .dn{font-size:12px;font-weight:600;color:var(--muted)}
+.cday.has{background:var(--surface-2)}
+.cday.has .dn{color:var(--fg)}
+.cday.today .dn{color:var(--accent-ink);text-decoration:underline;text-underline-offset:2px}
+.cday.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.cday .cn{position:absolute;top:3px;right:3px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--accent);color:#FFFFFF;font-size:10px;font-weight:700;line-height:16px;text-align:center}
+.cday .cp{font-size:9.5px;font-weight:600;color:var(--fg);white-space:nowrap}
+.cday .cdots{display:flex;flex-wrap:wrap;gap:2px;margin-top:auto}
+.cday .cdots .pdot{width:7px;height:7px;margin:0}
+.cblank{min-height:62px}
 </style>
 
 <div class="app">
@@ -292,6 +361,8 @@ a{color:var(--accent-ink)}
 <script>
 /* Bản sao ngoại tuyến của workbook, dùng khi không gọi được Google Sheet. */
 var SNAPSHOT = {"Nhà":[[],[null,null,{"t":"s","f":"Chi phí thuê nhà tháng 8/2026"}],[null,{"t":"s","f":"Thời hạn đóng\n(Hàng tháng)"},{"t":"s","f":"Danh mục"},{"t":"s","f":"Tổng tháng"},{"t":"s","f":"Room 1 - 4tr6"},null,{"t":"s","f":"Room 2 - 4tr9"},null,{"t":"s","f":"Room 3 - 5tr5"}],[null,null,null,null,{"t":"s","f":"Anh Phú"},{"t":"s","f":"Chị Vân"},{"t":"s","f":"Chị Vân Anh"},{"t":"s","f":"Chị La"},{"t":"s","f":"Tân"},{"t":"s","f":"Xuyến"}],[null,{"t":"d","v":"2026-10-01","f":"01/10"},{"t":"s","f":"Phòng"},{"t":"n","v":15000000.0,"f":"15.000.000 đ"},{"t":"n","v":2300000.0,"f":"2.300.000 đ"},{"t":"n","v":2300000.0,"f":"2.300.000 đ"},{"t":"n","v":2450000.0,"f":"2.450.000 đ"},{"t":"n","v":2450000.0,"f":"2.450.000 đ"},{"t":"n","v":5500000.0,"f":"5.500.000 đ"}],[null,null,{"t":"s","f":"Tiền cọc nhà"},{"t":"n","v":13000000.0,"f":"13.000.000 đ"},{"t":"n","v":2000000.0,"f":"2.000.000 đ"},{"t":"n","v":2000000.0,"f":"2.000.000 đ"},{"t":"n","v":1150000.0,"f":"1.150.000 đ"},{"t":"n","v":2150000.0,"f":"2.150.000 đ"},{"t":"n","v":4700000.0,"f":"4.700.000 đ"}],[null,{"t":"s","f":"01 - 05/10"},{"t":"s","f":"Điện"},null,{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"}],[null,{"t":"d","v":"2026-10-05","f":"05/10"},{"t":"s","f":"Nước"},null,{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"}],[null,null,{"t":"s","f":"Wifi (gói cước 255k/tháng)"},{"t":"n","v":255000.0,"f":"255.000 đ"},{"t":"n","v":42500.0,"f":"42.500 đ"},{"t":"n","v":42500.0,"f":"42.500 đ"},{"t":"n","v":42500.0,"f":"42.500 đ"},{"t":"n","v":42500.0,"f":"42.500 đ"},{"t":"n","v":85000.0,"f":"85.000 đ"}],[null,{"t":"d","v":"2026-10-05","f":"05/10"},{"t":"s","f":"Phí quản lý (565k/tháng)"},{"t":"n","v":565000.0,"f":"565.000 đ"},{"t":"n","v":94166.66667,"f":"94.167 đ"},{"t":"n","v":94166.66667,"f":"94.167 đ"},{"t":"n","v":94166.66667,"f":"94.167 đ"},{"t":"n","v":94166.66667,"f":"94.167 đ"},{"t":"n","v":188333.3333,"f":"188.333 đ"}],[null,{"t":"d","v":"2026-10-05","f":"05/10"},{"t":"s","f":"Phí gửi xe"},null,{"t":"n","v":100000.0,"f":"100.000 đ"},{"t":"n","v":80000.0,"f":"80.000 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":100000.0,"f":"100.000 đ"},{"t":"n","v":100000.0,"f":"100.000 đ"},{"t":"n","v":0.0,"f":"0 đ"}],[null,null,{"t":"s","f":"Chi phí khác (nếu có)"},{"t":"n","v":35000.0,"f":"35.000 đ"},null,null,null,{"t":"n","v":35000.0,"f":"35.000 đ"}],[null,null,{"t":"s","f":"Tổng"},{"t":"n","v":28855000.0,"f":"28.855.000 đ"},{"t":"n","v":4536666.667,"f":"4.536.667 đ"},{"t":"n","v":4516666.667,"f":"4.516.667 đ"},{"t":"n","v":3736666.667,"f":"3.736.667 đ"},{"t":"n","v":4871666.667,"f":"4.871.667 đ"},{"t":"n","v":10573333.33,"f":"10.573.333 đ"}]],"1.10-7.10":[[],[null,null,null,null,null,null,null,null,{"t":"s","f":"Tuần 1/10-7/10"}],[null,{"t":"s","f":"Chi tiêu"},null,null,null,null,null,null,{"t":"s","f":"Ngày"},{"t":"s","f":"Chị La"},{"t":"s","f":"Chị Vân Anh"},{"t":"s","f":"Anh Phú"},{"t":"s","f":"Chị Vân"},{"t":"s","f":"Tân + Xuyến"},{"t":"s","f":"Tổng cộng"},{"t":"s","f":"CK mỗi người"}],[null,null,null,null,null,null,null,null,{"t":"d","v":"2026-10-01","f":"01/10"},{"t":"n","v":47333.33333,"f":"47.333 đ"},{"t":"n","v":47333.33333,"f":"47.333 đ"},{"t":"n","v":47333.33333,"f":"47.333 đ"},{"t":"n","v":47333.33333,"f":"47.333 đ"},{"t":"n","v":47333.33333,"f":"47.333 đ"},{"t":"n","v":284000.0,"f":"284.000 đ"},{"t":"s","f":"40k Tân - 7k Anh Phú"}],[null,{"t":"s","f":"Nguời mua"},{"t":"s","f":"Mô tả"},{"t":"s","f":"SL"},{"t":"s","f":"Số tiền"},{"t":"s","f":"Dư lại"},{"t":"s","f":"Ngày"},null,{"t":"d","v":"2026-10-02","f":"02/10"},{"t":"n","v":68539.75,"f":"68.540 đ"},{"t":"n","v":34269.875,"f":"34.270 đ"},{"t":"n","v":34269.875,"f":"34.270 đ"},{"t":"n","v":0.0,"f":"0"},{"t":"n","v":0.0,"f":"0"},{"t":"n","v":137079.5,"f":"137.080 đ"},{"t":"s","f":"35k - Chị La"}],[null,{"t":"s","f":"Em Xuyến"},{"t":"s","f":"Thịt bò tảng"},{"t":"s","f":"1000gr"},{"t":"n","v":250000.0,"f":"250.000 đ"},null,{"t":"d","v":"2026-10-01","f":"01/10/2026"},{"t":"n","v":41666.66667,"f":"41.667 đ"},{"t":"d","v":"2026-10-03","f":"03/10"},{"t":"n","v":23162.875,"f":"23.163 đ"},{"t":"n","v":23162.875,"f":"23.163 đ"},{"t":"n","v":0.0,"f":"0"},{"t":"n","v":0.0,"f":"0"},{"t":"n","v":46325.75,"f":"46.326 đ"},{"t":"n","v":92651.5,"f":"92.652 đ"},{"t":"s","f":"23k - Chị Vân Anh"}],[null,{"t":"s","f":"Anh Phú"},{"t":"s","f":"Dưa leo"},{"t":"s","f":"1 củ"},{"t":"n","v":3000.0,"f":"3.000 đ"},null,{"t":"d","v":"2026-10-01","f":"01/10/2026"},{"t":"n","v":5666.666667,"f":"5.667 đ"},{"t":"d","v":"2026-10-04","f":"04/10"},{"t":"n","v":27500.0,"f":"27.500 đ"},{"t":"n","v":27500.0,"f":"27.500 đ"},{"t":"n","v":27500.0,"f":"27.500 đ"},{"t":"n","v":27500.0,"f":"27.500 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":110000.0,"f":"110.000 đ"},{"t":"s","f":"28k - Anh Phú"}],[null,{"t":"s","f":"Anh Phú"},{"t":"s","f":"Trứng gà"},{"t":"s","f":"6 quả"},{"t":"n","v":24000.0,"f":"24.000 đ"},null,{"t":"d","v":"2026-10-01","f":"01/10/2026"},null,{"t":"d","v":"2026-10-05","f":"05/10"},{"t":"n","v":27766.66667,"f":"27.767 đ"},{"t":"n","v":27766.66667,"f":"27.767 đ"},{"t":"n","v":27766.66667,"f":"27.767 đ"},{"t":"n","v":27766.66667,"f":"27.767 đ"},{"t":"n","v":55533.33333,"f":"55.533 đ"},{"t":"n","v":166600.0,"f":"166.600 đ"},{"t":"s","f":"28k - Chị La"}],[null,{"t":"s","f":"Anh Phú"},{"t":"s","f":"Bắp cải"},{"t":"s","f":"1/2 củ"},{"t":"n","v":7000.0,"f":"7.000 đ"},null,{"t":"d","v":"2026-10-01","f":"01/10/2026"},null,{"t":"d","v":"2026-10-07","f":"07/10"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":83200.0,"f":"83.200 đ"},{"t":"n","v":83200.0,"f":"83.200 đ"},{"t":"n","v":83200.0,"f":"83.200 đ"},{"t":"n","v":166400.0,"f":"166.400 đ"},{"t":"n","v":416000.0,"f":"416.000 đ"},{"t":"s","f":"83.200đ - Anh Phú"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Rau muống"},{"t":"s","f":"400gr"},{"t":"n","v":10000.0,"f":"10.000 đ"},null,{"t":"d","v":"2026-10-02","f":"02/10/2026"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Ớt"},{"t":"s","f":"50gr"},{"t":"n","v":6200.0,"f":"6.200 đ"},null,{"t":"d","v":"2026-10-02","f":"02/10/2026"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Trứng cút"},{"t":"s","f":"30 trứng"},{"t":"n","v":25000.0,"f":"25.000 đ"},null,{"t":"d","v":"2026-10-02","f":"02/10/2026"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Bí đỏ"},{"t":"s","f":"850gr"},{"t":"n","v":21303.0,"f":"21.303 đ"},{"t":"s","f":"400gr"},{"t":"d","v":"2026-10-02","f":"02/10/2026"},{"t":"n","v":10651.5,"f":"10.652 đ"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Ba rọi"},{"t":"s","f":"478gr"},{"t":"n","v":47179.0,"f":"47.179 đ"},null,{"t":"d","v":"2026-10-02","f":"02/10/2026"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Thịt xay"},{"t":"s","f":"428gr"},{"t":"n","v":38049.0,"f":"38.049 đ"},null,{"t":"d","v":"2026-10-02","f":"02/10/2026"}],[null,{"t":"s","f":"Chị Vân Anh"},{"t":"s","f":"Trứng gà"},{"t":"s","f":"10 quả"},{"t":"n","v":35000.0,"f":"35.000 đ"},{"t":"s","f":"6 quả"},{"t":"d","v":"2026-10-03","f":"03/10/2026"},{"t":"n","v":14000.0,"f":"14.000 đ"},{"t":"s","f":"Bill chung mỗi tháng"},null,null,{"t":"s","f":"Từ Ngày 1/10 - 7/10"}],[null,{"t":"s","f":"Chị Vân Anh"},{"t":"s","f":"Bông diên"},null,{"t":"n","v":40000.0,"f":"40.000 đ"},null,{"t":"d","v":"2026-10-03","f":"03/10/2026"},null,{"t":"s","f":"Gạo"},null,null,{"t":"s","f":"Chị La"},{"t":"s","f":"Chị VAnh"},{"t":"s","f":"A.Phú + C.Vân"},{"t":"s","f":"Tân + Xuyến"}],[null,{"t":"s","f":"Chị Vân Anh"},{"t":"s","f":"Cá mòi"},{"t":"s","f":"2 hộp"},{"t":"n","v":36000.0,"f":"36.000 đ"},{"t":"s","f":"1 hộp"},{"t":"d","v":"2026-10-03","f":"03/10/2026"},{"t":"n","v":18000.0,"f":"18.000 đ"},{"t":"s","f":"Nước lọc"},null,null,null,null,null,{"t":"s","f":"100k Anh Phú"}],[null,{"t":"s","f":"Chị Vân Anh"},{"t":"s","f":"Dưa chuột"},null,{"t":"n","v":10000.0,"f":"10.000 đ"},null,{"t":"d","v":"2026-10-03","f":"03/10/2026"},null,{"t":"s","f":"Gia vị"},null,null,null,{"t":"s","f":"40k Chị La"},{"t":"s","f":"56k chị la"},{"t":"s","f":"6k - Chị VAnh"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Rau ngót"},{"t":"s","f":"250gr"},{"t":"n","v":14600.0,"f":"14.600 đ"},null,{"t":"d","v":"2026-10-05","f":"05/10/2026"},null,null,null,null,null,{"t":"s","f":"118k Anh Phú"},null,{"t":"s","f":"16k Chị La"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Cà tím"},{"t":"s","f":"600gr"},{"t":"n","v":17000.0,"f":"17.000 đ"},null,{"t":"d","v":"2026-10-05","f":"05/10/2026"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Ức gà"},{"t":"s","f":"400gr"},{"t":"n","v":43000.0,"f":"43.000 đ"},null,{"t":"d","v":"2026-10-05","f":"05/10/2026"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Cánh gà"},{"t":"s","f":"400gr"},{"t":"n","v":42000.0,"f":"42.000 đ"},null,{"t":"d","v":"2026-10-05","f":"05/10/2026"}],[null,{"t":"s","f":"Chị La"},{"t":"s","f":"Cánh giữa"},{"t":"s","f":"300gr"},{"t":"n","v":50000.0,"f":"50.000 đ"},null,{"t":"d","v":"2026-10-05","f":"05/10/2026"}],[null,{"t":"s","f":"Anh Phú"},{"t":"s","f":"Thịt vớt đậu hủ"},null,{"t":"n","v":110000.0,"f":"110.000 đ"},null,{"t":"d","v":"2026-10-04","f":"04/10/2026"}],[null,{"t":"s","f":"Anh Phú"},{"t":"s","f":"Pizza"},{"t":"s","f":"4 bánh"},{"t":"n","v":380000.0,"f":"380.000 đ"},null,{"t":"d","v":"2026-10-07","f":"07/10/2026"}],[null,{"t":"s","f":"Anh Phú"},{"t":"s","f":"Coca"},{"t":"s","f":"3 chai"},{"t":"n","v":36000.0,"f":"36.000 đ"},null,{"t":"d","v":"2026-10-07","f":"07/10/2026"}]],"8.10-15.10":[[],[null,null,null,null,null,null,null,null,{"t":"s","f":"Tuần 8.10-15.10"}],[null,{"t":"s","f":"Chi tiêu"},null,null,null,null,null,null,{"t":"s","f":"Ngày"},{"t":"s","f":"Chị La"},{"t":"s","f":"Chị Vân Anh"},{"t":"s","f":"A.Phú + C.Vân"},{"t":"s","f":"Tân + Xuyến"},{"t":"s","f":"Tổng cộng"},{"t":"s","f":"CK mỗi người"}],[null,null,null,null,null,null,null,null,{"t":"d","v":"2026-10-08","f":"08/10"},{"t":"n","v":6333.333333,"f":"6.333 đ"},{"t":"n","v":6333.333333,"f":"6.333 đ"},{"t":"n","v":6333.333333,"f":"6.333 đ"},{"t":"n","v":6333.333333,"f":"6.333 đ"},{"t":"n","v":38000.0,"f":"38.000 đ"}],[null,{"t":"s","f":"Nguời mua"},{"t":"s","f":"Mô tả"},{"t":"s","f":"SL"},{"t":"s","f":"Số tiền"},{"t":"s","f":"Dư lại"},{"t":"s","f":"Ngày"},null,{"t":"d","v":"2026-10-09","f":"09/10"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"}],[null,{"t":"s","f":"Anh Tân"},{"t":"s","f":"Bí + bắp cải + hành"},null,{"t":"n","v":45000.0,"f":"45.000 đ"},{"t":"s","f":"cải 1/3"},{"t":"d","v":"2026-10-08","f":"08/10/2026"},{"t":"n","v":7000.0,"f":"7.000 đ"},{"t":"d","v":"2026-10-10","f":"10/10"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"}],[null,{"t":"s","f":"Anh Tân"},{"t":"s","f":"Hạt nêm"},null,{"t":"n","v":36000.0,"f":"36.000 đ"},null,{"t":"d","v":"2026-10-08","f":"08/10/2026"},null,{"t":"d","v":"2026-10-11","f":"11/10"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"}],[null,{"t":"s","f":"Anh Tân"},{"t":"s","f":"Cá kho"},null,null,null,{"t":"d","v":"2026-10-08","f":"08/10/2026"},null,{"t":"d","v":"2026-10-12","f":"12/10"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"}],[null,null,null,null,null,null,null,null,{"t":"d","v":"2026-10-13","f":"13/10"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"}],[null,null,null,null,null,null,null,null,{"t":"d","v":"2026-10-14","f":"14/10"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"}],[null,null,null,null,null,null,null,null,{"t":"d","v":"2026-10-15","f":"15/10"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"},{"t":"n","v":0.0,"f":"0 đ"}],[],[],[],[],[null,null,null,null,null,null,null,null,{"t":"s","f":"Bill chung mỗi tháng"},null,null,{"t":"s","f":"Từ Ngày 8.10 - 15.10"}],[null,null,null,null,null,null,null,null,{"t":"s","f":"Gạo"},null,null,{"t":"s","f":"Chị La"},{"t":"s","f":"Chị VAnh"},{"t":"s","f":"A.Phú + C.Vân"},{"t":"s","f":"Tân + Xuyến"}],[null,null,null,null,null,null,null,null,{"t":"s","f":"Nước lọc"}],[null,null,null,null,null,null,null,null,{"t":"s","f":"Gia vị"},{"t":"n","v":36000.0,"f":"36.000 đ"}]]};
+/* Màu nền tên người lấy từ sheet lúc đóng gói (Google không trả màu khi đọc trực tiếp). */
+var SHEET_COLORS = [{"name": "Chị La", "color": "#D9EAD3"}, {"name": "Chị VAnh", "color": "#FCE5CD"}, {"name": "A.Phú + C.Vân", "color": "#FFF2CC"}, {"name": "Tân + Xuyến", "color": "#C9DAF8"}];
 </script>
 <script>
 (function(){
@@ -320,6 +391,9 @@ var state = {
   busy: "",
   msg: "",
   payWho: "all",           // người đang xem ở tab Thanh toán, nhớ trên máy
+  payView: "list",         // list | cal
+  payDay: "",              // ngày đang mở trong lịch Thanh toán
+  noteView: "list",        // list | cal
   prevTab: "overview"      // quay về tab này khi rời trang Nâng cao
 };
 
@@ -327,6 +401,7 @@ var state = {
 function save(){
   try{ localStorage.setItem(LS, JSON.stringify({
     sheets: state.sheets, current: state.current, mode: state.mode, payWho: state.payWho,
+    payView: state.payView, noteView: state.noteView,
     theme: document.documentElement.getAttribute("data-theme") || ""
   })); }catch(e){}
 }
@@ -339,6 +414,8 @@ function load(){
     if(typeof o.current === "string" && o.current) state.current = o.current;
     if(o.mode === "live" || o.mode === "snapshot" || o.mode === "auto") state.mode = o.mode;
     if(typeof o.payWho === "string" && o.payWho) state.payWho = o.payWho;
+    if(o.payView === "cal" || o.payView === "list") state.payView = o.payView;
+    if(o.noteView === "cal" || o.noteView === "list") state.noteView = o.noteView;
     if(o.theme) document.documentElement.setAttribute("data-theme", o.theme);
   }catch(e){}
 }
@@ -792,6 +869,45 @@ function scan(){
 
 /* ---------- mảnh giao diện ---------- */
 function colorOf(i){ return "var(--c" + ((i % 6) + 1) + ")"; }
+
+/* ---------- màu từng người, lấy theo sheet ----------
+   Ghép theo tên đã bỏ dấu và bỏ "Anh/Chị/Em", kể cả kiểu viết tắt:
+   "Chị VAnh" khớp "Chị Vân Anh", "A.Phú" khớp "Anh Phú", "Em Xuyến" khớp "Tân + Xuyến". */
+function nkeys(s){
+  var b = String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/đ/g, "d").replace(/\./g, " ").replace(/\s+/g, " ").trim()
+    .replace(/^(anh|chi|em|co|chu|ban|a|c|e)\s+/, "");
+  var w = b.split(" ").filter(Boolean);
+  if(!w.length) return [];
+  var keys = [w.join("")];
+  if(w.length > 1) keys.push(w.slice(0, -1).map(function(x){ return x[0]; }).join("") + w[w.length - 1]);
+  return keys;
+}
+var COLOR_KEY = {};
+(SHEET_COLORS || []).forEach(function(e){
+  var parts = String(e.name).split(/\s*\+\s*/);
+  COLOR_KEY["@" + parts.map(function(x){ return nkeys(x)[0]; }).join("+")] = e.color;
+  parts.forEach(function(x){ nkeys(x).forEach(function(k){ if(!COLOR_KEY[k]) COLOR_KEY[k] = e.color; }); });
+});
+var FALLBACK_COLORS = ["#E4D7F5", "#D3EBF2", "#F6D6E4", "#E2EFD0", "#F3E3C8", "#D8DEF7", "#F2D3CF", "#D6EFE6"];
+var _fallback = {};
+function personColor(label){
+  var parts = String(label == null ? "" : label).split(/\s*\+\s*/);
+  var full = COLOR_KEY["@" + parts.map(function(x){ return nkeys(x)[0]; }).join("+")];
+  if(full) return full;
+  for(var i = 0; i < parts.length; i++){
+    var ks = nkeys(parts[i]);
+    for(var j = 0; j < ks.length; j++){ if(COLOR_KEY[ks[j]]) return COLOR_KEY[ks[j]]; }
+  }
+  var k = nkeys(label)[0] || String(label);
+  if(!_fallback[k]) _fallback[k] = FALLBACK_COLORS[Object.keys(_fallback).length % FALLBACK_COLORS.length];
+  return _fallback[k];
+}
+function pchip(name, extra, cls){
+  return '<span class="pchip' + (cls ? " " + cls : "") + '" style="--pc:' + personColor(name) + '">' + esc(name) +
+    (extra ? '<b>' + esc(extra) + '</b>' : "") + '</span>';
+}
+function pdot(name){ return '<i class="pdot" style="--pc:' + personColor(name) + '"></i>'; }
 function sumItems(l){ return l.reduce(function(a, b){ return a + (b.amount || 0); }, 0); }
 function byKey(list, keyFn){
   var m = {}, order = [];
@@ -875,7 +991,7 @@ function viewOverview(){
         var paid = day.shares.filter(function(s){ return s.value; });
         return '<div class="dayitem"><div class="head"><div class="main"><div class="nm">' + esc(day.label) + '</div>' +
           (paid.length ? '<div class="me">' + paid.map(function(s){
-            return '<span class="chip">' + esc(s.name) + " " + esc(short(s.value)) + '</span>';
+            return pchip(s.name, short(s.value));
           }).join("") + '</div>' : "") +
           '</div><div class="amt">' + esc(vnd(day.total)) + '</div></div>' +
           (day.note ? '<div class="ck"><b>CK cho</b><span>' + esc(day.note) + '</span></div>' : "") +
@@ -948,14 +1064,14 @@ function viewList(){
   h += '<div class="diff"><span>' + f.length + " khoản · tổng " + esc(vnd(sumItems(f))) + '</span></div>';
   if(!f.length) return h + '<div class="empty">Không có khoản nào khớp bộ lọc.</div>';
 
-  var palette = {}; buyers.forEach(function(b, i){ palette[b] = colorOf(i); });
+  var palette = {}; buyers.forEach(function(b){ palette[b] = personColor(b); });
   var groups = byKey(f, function(i){ return i.date ? dkey(i.date) : "zzz"; }).sort(function(a, b){ return a.key < b.key ? -1 : 1; });
 
   h += groups.map(function(g){
     var dt = g.key === "zzz" ? null : new Date(g.key);
     return '<div class="card flat"><div class="dayhead"><b>' + esc(dlong(dt)) + '</b><span>' + esc(vnd(g.total)) + '</span></div><div class="rows">' +
       g.items.map(function(it){
-        return '<div class="row"><span class="dot" style="background:' + (palette[it.buyer] || "var(--accent)") + '"></span>' +
+        return '<div class="row">' + pdot(it.buyer) +
           '<div class="main"><div class="nm">' + esc(it.name) + '</div><div class="me"><span>' + esc(it.buyer) + '</span>' +
           (it.qty ? '<span>·</span><span>' + esc(it.qty) + '</span>' : "") +
           (it.leftQty ? '<span class="chip ok">còn ' + esc(it.leftQty) + (it.leftVal ? " · " + esc(short(it.leftVal)) : "") + '</span>' : "") +
@@ -1117,12 +1233,79 @@ function transfers(groups){
   debt.forEach(function(d){ var g = d.owe - (td > tc && td > 0 ? d.owe * (tc / td) : d.owe); if(g > 500) short[d.name] = -g; });
   return { moves: out, short: short };
 }
+function segView(id, cur){
+  return '<div class="seg" id="' + id + '" role="group">' +
+    '<button data-v="list" aria-pressed="' + (cur !== "cal") + '">Danh sách</button>' +
+    '<button data-v="cal" aria-pressed="' + (cur === "cal") + '">Lịch</button></div>';
+}
+var DOW_SHORT = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+function dayOfLabel(label, d){
+  var m = /^(\d{1,2})\/(\d{1,2})/.exec(label || "");
+  if(!m) return null;
+  var it = d.items.filter(function(x){ return x.date; })[0];
+  return new Date(it ? it.date.getFullYear() : new Date().getFullYear(), +m[2] - 1, +m[1]);
+}
+function headCount(label){ return String(label).split(/\s*\+\s*/).length; }
+
+/* Lịch Thanh toán: lưới người × ngày. Ô có màu = người đó có phần chia hôm đó. */
+function payCalendar(d, res, sel){
+  var groups = res.groups.filter(function(g){ return g.col >= 0; });
+  var days = d.days;
+  if(!days.length) return '<div class="card"><div class="empty">Tab này không có bảng chia theo ngày.</div></div>';
+  var has = function(day){ return day.total > 0.5; };
+  var pick = days.some(function(x){ return x.label === state.payDay; }) ? state.payDay
+    : (days.filter(has).slice(-1)[0] || days[0]).label;
+  var v = function(day, g){ return day.shares[g.col] ? day.shares[g.col].value : 0; };
+  var selDays = sel ? days.filter(function(day){ return v(day, sel) > 0.5; }).length : 0;
+
+  var h = '<div class="card" id="paycal"><div class="ttl"><h2>Lịch chia tiền</h2><em>' +
+    (sel ? esc(sel.label) + ' · ' + selDays + '/' + days.filter(has).length + ' ngày' : days.filter(has).length + ' ngày có chia') + '</em></div>' +
+    '<div class="gridwrap"><table class="pgrid"><thead><tr><th class="pn"></th>' +
+    days.map(function(day){
+      var dt = dayOfLabel(day.label, d);
+      return '<th data-day="' + esc(day.label) + '" class="' + (day.label === pick ? "sel" : "") + '"><span>' +
+        (dt ? DOW_SHORT[dt.getDay()] : "") + '</span><b>' + esc(day.label.slice(0, 5)) + '</b></th>';
+    }).join("") + '<th class="tt">Tổng</th></tr></thead><tbody>' +
+    groups.map(function(g){
+      return '<tr class="' + (sel ? (sel === g ? "on" : "dim") : "") + '"><th class="pn">' + pchip(g.label) + '</th>' +
+        days.map(function(day){
+          var x = v(day, g);
+          return '<td data-day="' + esc(day.label) + '" class="' + (day.label === pick ? "sel" : "") + '">' +
+            (x > 0.5 ? '<span class="cell" style="--pc:' + personColor(g.label) + '">' + esc(short(x)) + '</span>' : '<span class="nil"></span>') + '</td>';
+        }).join("") + '<td class="tt">' + esc(short(g.owed)) + '</td></tr>';
+    }).join("") + '</tbody><tfoot><tr><th class="pn">Cả nhà</th>' +
+    days.map(function(day){
+      var ppl = day.shares.reduce(function(a, sh){ return a + (sh.value > 0.5 ? headCount(sh.name) : 0); }, 0);
+      return '<td data-day="' + esc(day.label) + '" class="' + (day.label === pick ? "sel" : "") + '"><b>' +
+        (has(day) ? esc(short(day.total)) : "–") + '</b><span>' + (ppl ? ppl + " người" : "") + '</span></td>';
+    }).join("") + '<td class="tt">' + esc(short(days.reduce(function(a, x){ return a + x.total; }, 0))) + '</td></tr></tfoot></table></div></div>';
+
+  /* chi tiết ngày đang chọn */
+  var day = days.filter(function(x){ return x.label === pick; })[0];
+  var dt = dayOfLabel(day.label, d);
+  var who = groups.filter(function(g){ return v(day, g) > 0.5; });
+  var ppl = who.reduce(function(a, g){ return a + headCount(g.label); }, 0);
+  var bought = d.items.filter(function(it){ return it.date && dshort(it.date) === day.label; });
+  var n = function(x){ return nf.format(Math.round(x)); };
+  h += '<div class="daycard"><div class="dtop"><span class="dname">' + esc(dt ? dlong(dt) : day.label) + '</span>' +
+      '<span class="dsum" style="color:var(--fg)">' + esc(vnd(day.total)) + '</span></div>' +
+    '<div class="dpeople"><span class="cnt">' + ppl + ' người</span>' +
+      (who.length ? who.map(function(g){ return pchip(g.label, short(v(day, g)), sel === g ? "on" : ""); }).join("") : '<span class="me">Không ai chia ngày này</span>') +
+    '</div>' +
+    (bought.length ? '<div class="ditems">' + bought.map(function(it){
+        return '<div class="ditem"><div class="t"><b>' + esc(it.name) + (it.qty ? ' · ' + esc(it.qty) : "") + '</b>' +
+          '<span>' + pdot(it.buyer) + esc(it.buyer) + ' mua</span></div><div class="v">' + (it.amount == null ? "—" : n(it.amount)) + '</div></div>';
+      }).join("") + '</div>' : "") +
+    (day.note ? '<div class="dck"><b>CK cho</b><span>' + esc(day.note) + '</span></div>' : "") + '</div>';
+  return h;
+}
+
 /* Bộ chọn "Cả nhà / từng người" dùng chung cho tab Thanh toán */
 function payPicker(labels, active){
   return '<div class="filters" id="fPay" role="group" aria-label="Xem theo người">' +
     '<button class="pill" data-v="all" aria-pressed="' + (active === "all") + '">Cả nhà</button>' +
     labels.map(function(l){
-      return '<button class="pill" data-v="' + esc(l) + '" aria-pressed="' + (active === l) + '">' + esc(l) + '</button>';
+      return '<button class="pill" data-v="' + esc(l) + '" aria-pressed="' + (active === l) + '">' + pdot(l) + esc(l) + '</button>';
     }).join("") + '</div>';
 }
 /* Người đã chọn ở tab khác vẫn được giữ: khớp đúng tên, không thì khớp theo
@@ -1224,7 +1407,9 @@ function viewPay(){
   var n = function(x){ return nf.format(Math.round(x)); };
 
   var sel = pickGroup(res.groups, state.payWho);
-  var h = payPicker(res.groups.map(function(g){ return g.label; }), sel ? sel.label : "all");
+  var h = segView("payView", state.payView) +
+    payPicker(res.groups.map(function(g){ return g.label; }), sel ? sel.label : "all");
+  if(state.payView === "cal") return h + payCalendar(d, res, sel);
   if(sel) return h + personPay(d, sel, moves);
 
   h += '<div class="hero"><div class="lab">Tổng cần chuyển cho nhau</div><div class="big">' + esc(vnd(need)) + '</div>' +
@@ -1295,7 +1480,7 @@ function viewPay(){
       if(g.held > 1) calc.push('giữ đồ dư ' + n(g.held));
       calc.push('phần mình ' + n(g.owed));
       g.gapDays.forEach(function(x){ if(x.amt > 1) calc.push('thiếu ' + x.day + ' ' + n(x.amt)); });
-      return '<div class="row"><div class="main"><div class="nm">' + esc(g.label) + '</div>' +
+      return '<div class="row"><div class="main"><div class="nm">' + pdot(g.label) + esc(g.label) + '</div>' +
         '<div class="me">' + tag + (g.orphan ? '<span class="chip warn">chưa có trong bảng chia</span>' : "") + '</div>' +
         '<div class="me calc">' + esc(calc.join(' − ')) + '</div></div>' +
         '<div class="amt" style="color:' + (g.net > 500 ? "var(--accent)" : g.net < -500 ? "var(--warn)" : "var(--muted)") + '">' +
@@ -1590,6 +1775,7 @@ function saveItem(){
     if(r.__status !== 200){ L.err = r.error || "Không lưu được, thử lại."; rerender(); return; }
     L.items = L.items.filter(function(x){ return x.id !== id; });
     L.items.push(r.item); sortItems();
+    L.day = r.item.date; L.month = r.item.date.slice(0, 7);
     /* thêm mới thì giữ ngày và người tham gia cho lần nhập kế tiếp */
     L.form = editing ? blankForm() : blankForm(L.form);
     flash((editing ? "Đã sửa " : "Đã lưu ") + "“" + r.item.title + "”", true);
@@ -1659,6 +1845,70 @@ function formHint(){
   return s;
 }
 
+function peopleOf(items){
+  var seen = {};
+  items.forEach(function(it){ it.participants.forEach(function(p){ seen[p] = 1; }); });
+  return Object.keys(seen);
+}
+function noteCard(it){
+  var armed = L.delArm === "it:" + it.id;
+  return '<div class="ncard"><div class="ntop"><b>' + esc(it.title) + '</b>' +
+      (it.amount ? '<span class="amt">' + esc(vnd(it.amount)) + '</span>' : "") + '</div>' +
+    '<div class="nmeta"><span class="cnt">' + it.participants.length + ' người</span>' +
+      (it.amount ? '<span>' + esc(vnd(shareOf(it))) + '/người</span>' : "") +
+      (it.payer ? '<span>' + pdot(memberName(it.payer)) + esc(memberName(it.payer)) + ' trả</span>' : "") + '</div>' +
+    '<div class="nchips">' + it.participants.map(function(p){
+      return pchip(memberName(p), "", p === L.who ? "on" : "");
+    }).join("") + '</div>' +
+    (it.note ? '<div class="nnote">' + esc(it.note) + '</div>' : "") +
+    '<div class="acts"><button class="lnk" data-act="edit" data-id="' + esc(it.id) + '">Sửa</button>' +
+      '<button class="lnk warn" data-act="del" data-id="' + esc(it.id) + '">' + (armed ? "Bấm lần nữa để xoá" : "Xoá") + '</button></div></div>';
+}
+function noteDays(list){
+  return byKey(list, function(it){ return it.date; }).map(function(g){
+    return '<div class="sechead"><h2>' + esc(dlong(isoDate(g.key))) + '</h2><span class="sub3">' + g.items.length + ' note · ' +
+      peopleOf(g.items).length + ' người</span></div>' + g.items.map(noteCard).join("");
+  }).join("");
+}
+/* Lịch tháng: mỗi ô ngày có số note và số người tham gia, bấm vào để xem */
+function noteCalendar(list){
+  var byDay = {};
+  list.forEach(function(it){ (byDay[it.date] = byDay[it.date] || []).push(it); });
+  var latest = list.length ? list[0].date : todayISO();
+  if(!L.month) L.month = (L.day || latest).slice(0, 7);
+  var y = +L.month.slice(0, 4), mo = +L.month.slice(5, 7) - 1;
+  var first = new Date(y, mo, 1), dim = new Date(y, mo + 1, 0).getDate();
+  var lead = (first.getDay() + 6) % 7;   // tuần bắt đầu từ thứ Hai
+  var iso = function(dd){ return y + "-" + pad(mo + 1) + "-" + pad(dd); };
+  var inMonth = Object.keys(byDay).filter(function(k){ return k.slice(0, 7) === L.month; }).sort();
+  var pick = L.day && L.day.slice(0, 7) === L.month ? L.day : (inMonth.slice(-1)[0] || "");
+  var today = todayISO();
+
+  var cells = "";
+  for(var i = 0; i < lead; i++) cells += '<span class="cblank"></span>';
+  for(var dd = 1; dd <= dim; dd++){
+    var k = iso(dd), its = byDay[k] || [], ppl = peopleOf(its);
+    cells += '<button class="cday' + (its.length ? " has" : "") + (k === pick ? " sel" : "") + (k === today ? " today" : "") +
+      '" data-act="cday" data-d="' + k + '"><span class="dn">' + dd + '</span>' +
+      (its.length ? '<span class="cn">' + its.length + '</span><span class="cp">' + ppl.length + ' người</span>' +
+        '<span class="cdots">' + ppl.slice(0, 6).map(function(p){ return pdot(memberName(p)); }).join("") + '</span>' : "") +
+      '</button>';
+  }
+  var h = '<div class="card ncal"><div class="calnav"><button class="iconbtn" data-act="mprev" aria-label="Tháng trước">' +
+      '<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"></path></svg></button>' +
+      '<b>Tháng ' + (mo + 1) + '/' + y + '</b>' +
+      '<button class="iconbtn" data-act="mnext" aria-label="Tháng sau"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg></button></div>' +
+    '<div class="cgrid">' + ["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map(function(w){ return '<span class="cw">' + w + '</span>'; }).join("") +
+      cells + '</div></div>';
+  if(pick){
+    var its2 = byDay[pick] || [];
+    h += '<div class="sechead"><h2>' + esc(dlong(isoDate(pick))) + '</h2><span class="sub3">' + its2.length + ' note · ' +
+      peopleOf(its2).length + ' người</span></div>' +
+      (its2.length ? its2.map(noteCard).join("") : '<div class="card"><div class="empty" style="padding:12px 0">Không có note ngày này.</div></div>');
+  }
+  return h;
+}
+
 function viewItems(){
   if(L.status === "idle" || L.status === "loading"){
     return '<div class="card"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:110px;margin-top:12px"></div></div>' +
@@ -1711,10 +1961,10 @@ function viewItems(){
       '<input type="date" id="lfDate" aria-label="Ngày" value="' + esc(f.date) + '">' +
       '<input type="text" id="lfAmount" inputmode="numeric" placeholder="Số tiền" value="' + esc(f.amount) + '">' +
     '</div>' +
-    '<div class="flabel"><span>Người tham gia</span><span style="display:flex;gap:12px">' +
+    '<div class="flabel"><span>Người tham gia · ' + Object.keys(f.participants).filter(function(k){ return f.participants[k]; }).length + '</span><span style="display:flex;gap:12px">' +
       '<button class="lnk" data-act="all">Chọn hết</button><button class="lnk" data-act="none">Bỏ hết</button></span></div>' +
     '<div class="picks">' + L.members.map(function(m){
-      return '<button class="pill" data-act="toggle" data-id="' + esc(m.id) + '" aria-pressed="' + (!!f.participants[m.id]) + '">' + esc(m.name) + '</button>';
+      return '<button class="pill" data-act="toggle" data-id="' + esc(m.id) + '" aria-pressed="' + (!!f.participants[m.id]) + '">' + pdot(m.name) + esc(m.name) + '</button>';
     }).join("") + '</div>' +
     '<div class="flabel">Người trả (tuỳ chọn)</div>' +
     '<select id="lfPayer"><option value="">Chưa ghi</option>' + L.members.map(function(m){
@@ -1730,10 +1980,11 @@ function viewItems(){
   var list = L.who === "all" ? L.items : L.items.filter(function(it){
     return it.participants.indexOf(L.who) >= 0 || it.payer === L.who;
   });
+  h += segView("noteView", state.noteView);
   h += '<div class="filters" role="group" aria-label="Lọc theo người">' +
     '<button class="pill" data-act="who" data-id="all" aria-pressed="' + (L.who === "all") + '">Tất cả</button>' +
     L.members.map(function(m){
-      return '<button class="pill" data-act="who" data-id="' + esc(m.id) + '" aria-pressed="' + (L.who === m.id) + '">' + esc(m.name) + '</button>';
+      return '<button class="pill" data-act="who" data-id="' + esc(m.id) + '" aria-pressed="' + (L.who === m.id) + '">' + pdot(m.name) + esc(m.name) + '</button>';
     }).join("") + '</div>';
 
   if(L.who !== "all"){
@@ -1748,33 +1999,15 @@ function viewItems(){
       esc(vnd(L.items.reduce(function(a, it){ return a + (it.amount || 0); }, 0))) + '</span></div>';
   }
 
-  if(!list.length){
-    h += '<div class="empty">' + (L.items.length ? "Người này chưa có note nào." : "Chưa có note nào. Thêm cái đầu tiên ở trên.") + '</div>';
-  }else{
-    var groups = byKey(list, function(it){ return it.date; });
-    h += groups.map(function(g){
-      return '<div class="card flat"><div class="dayhead"><b>' + esc(dlong(isoDate(g.key))) + '</b><span>' + g.items.length + ' note</span></div>' +
-        '<div class="rows">' + g.items.map(function(it){
-          var armed = L.delArm === "it:" + it.id;
-          return '<div class="row"><div class="main"><div class="nm">' + esc(it.title) + '</div>' +
-            '<div class="me">' + it.participants.map(function(p){
-              return '<span class="chip' + (p === L.who ? " me-on" : "") + '">' + esc(memberName(p)) + '</span>';
-            }).join("") + '</div>' +
-            '<div class="me">' + (it.payer ? '<span>' + esc(memberName(it.payer)) + ' trả</span>' : "") +
-              (it.amount ? (it.payer ? '<span>·</span>' : "") + '<span>' + esc(vnd(shareOf(it))) + '/người</span>' : "") +
-              (it.note ? '<span>·</span><span>' + esc(it.note) + '</span>' : "") + '</div>' +
-            '<div class="acts"><button class="lnk" data-act="edit" data-id="' + esc(it.id) + '">Sửa</button>' +
-              '<button class="lnk warn" data-act="del" data-id="' + esc(it.id) + '">' + (armed ? "Bấm lần nữa để xoá" : "Xoá") + '</button></div>' +
-            '</div><div class="amt">' + (it.amount ? esc(vnd(it.amount)) : "—") + '</div></div>';
-        }).join("") + '</div></div>';
-    }).join("");
-  }
+  if(state.noteView === "cal") h += noteCalendar(list);
+  else if(!list.length) h += '<div class="empty">' + (L.items.length ? "Người này chưa có note nào." : "Chưa có note nào.") + '</div>';
+  else h += noteDays(list);
 
   /* quản lý người */
   h += '<div class="card"><div class="ttl"><h2>Người trong nhà</h2><em>' + L.members.length + ' người</em></div><div class="rows">' +
     L.members.map(function(m){
       var armed = L.delArm === "m:" + m.id;
-      return '<div class="row"><div class="main"><div class="nm">' + esc(m.name) + '</div></div>' +
+      return '<div class="row"><div class="main"><div class="nm">' + pdot(m.name) + esc(m.name) + '</div></div>' +
         '<button class="lnk warn" data-act="delMember" data-id="' + esc(m.id) + '">' + (armed ? "Bấm lần nữa để xoá" : "Xoá") + '</button></div>';
     }).join("") + '</div>' +
     '<div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="lfMember" placeholder="Thêm người" style="flex:1">' +
@@ -1788,9 +2021,22 @@ function wireItems(){
   var root = document.getElementById("ledger");
   if(!root) return;
   root.addEventListener("click", function(e){
+    var sv = e.target.closest("#noteView button");
+    if(sv){
+      syncForm();
+      if(sv.dataset.v !== state.noteView){ state.noteView = sv.dataset.v; save(); render(); }
+      return;
+    }
     var b = e.target.closest("[data-act]"); if(!b || b.disabled) return;
     var act = b.dataset.act, id = b.dataset.id;
     syncForm();
+    if(act === "cday"){ L.day = b.dataset.d; return render(); }
+    if(act === "mprev" || act === "mnext"){
+      var yy = +L.month.slice(0, 4), mm = +L.month.slice(5, 7) - 1 + (act === "mnext" ? 1 : -1);
+      var nd = new Date(yy, mm, 1);
+      L.month = nd.getFullYear() + "-" + pad(nd.getMonth() + 1);
+      return render();
+    }
     if(act !== "del" && act !== "delMember") L.delArm = "";
     if(act === "retry") return ledgerLoad();
     if(act === "token"){
@@ -1881,6 +2127,16 @@ function wire(){
       var b = e.target.closest(".pill"); if(!b) return;
       state[p[1]] = b.dataset.v; render();
     });
+  });
+  var pv = document.getElementById("payView");
+  if(pv) pv.addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b || b.dataset.v === state.payView) return;
+    state.payView = b.dataset.v; save(); render();
+  });
+  var pc = document.getElementById("paycal");
+  if(pc) pc.addEventListener("click", function(e){
+    var c = e.target.closest("[data-day]"); if(!c) return;
+    state.payDay = c.dataset.day; render();
   });
   var fp = document.getElementById("fPay");
   if(fp) fp.addEventListener("click", function(e){

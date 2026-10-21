@@ -89,10 +89,17 @@ Thanh menu dưới cùng:
 - **Thanh toán** — chọn **Cả nhà** để xem ai chuyển cho ai, hoặc chọn một người để
   xem người đó chuyển cho ai, phần phải trả từng ngày gồm những món nào, và đã ứng
   những gì. Ở tab Nhà, chọn một người sẽ ra các khoản tiền nhà người đó phải đóng.
-  Lựa chọn được nhớ trên máy.
+  Lựa chọn được nhớ trên máy. Chế độ **Lịch** hiện lưới người × ngày: ô có màu là
+  người đó có phần chia hôm đó; bấm một ngày để xem ai tham gia, các món đã mua và
+  dòng CK. Đầu tab có thẻ **Kiểm tra sheet** báo sheet chia đủ hay lệch, lệch ở đâu.
 - **Thống kê** — tỉ lệ theo người, khoản lớn nhất, đồ còn dư trong bếp
 - **Note** — ghi chú chi tiêu (ví dụ "Ăn trưa 18/10"), chọn người tham gia, tuỳ chọn
-  số tiền và người trả; lọc theo người để xem phần mình. Lưu vào MongoDB.
+  số tiền và người trả; lọc theo người để xem phần mình. Mỗi note một thẻ, ghi số
+  người tham gia. Chế độ **Lịch** theo tháng hiện số note và số người mỗi ngày. Lưu vào MongoDB.
+
+Màu của từng người lấy theo màu nền tên trong sheet (bảng tổng hợp cuối tab tuần),
+ghép theo tên kể cả viết tắt ("Chị VAnh" = "Chị Vân Anh"). Google không trả màu khi
+đọc trực tiếp, nên màu được lấy từ file sheet lúc đóng gói app.
 
 **Nâng cao** (nút ở đầu trang, hoặc bấm vào tên tab sheet): chọn tab sheet đang xem,
 thêm tab mới, đổi nguồn dữ liệu. Chọn xong app quay lại đúng màn hình đang xem.
