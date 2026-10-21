@@ -85,7 +85,7 @@ kể cả khi số người hoặc thứ tự cột khác đi.
 Thanh menu dưới cùng:
 
 - **Tổng quan** — tổng chi, chi theo ngày, ai đang ứng tiền, bảng chia tiền theo ngày
-- **Giao dịch** — lọc theo người mua và theo ngày, tìm theo tên món
+- **Chi tiêu** — lọc theo người mua và theo ngày, tìm theo tên món
 - **Thanh toán** — chọn **Cả nhà** để xem ai chuyển cho ai, hoặc chọn một người để
   xem người đó chuyển cho ai, phần phải trả từng ngày gồm những món nào, và đã ứng
   những gì. Ở tab Nhà, chọn một người sẽ ra các khoản tiền nhà người đó phải đóng.

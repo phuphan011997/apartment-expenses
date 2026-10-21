@@ -370,7 +370,7 @@ table.pgrid{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
     <button class="tab" data-tab="overview" aria-selected="true">
       <svg viewBox="0 0 24 24"><path d="M3 13h5v8H3zM9.5 3h5v18h-5zM16 9h5v12h-5z"></path></svg>Tổng quan</button>
     <button class="tab" data-tab="list" aria-selected="false">
-      <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"></path></svg>Giao dịch</button>
+      <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"></path></svg>Chi tiêu</button>
     <button class="tab" data-tab="pay" aria-selected="false">
       <svg viewBox="0 0 24 24"><path d="M17 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3z"></path><path d="M8 10h8M8 14h5"></path></svg>Thanh toán</button>
     <button class="tab" data-tab="stats" aria-selected="false">
@@ -1063,7 +1063,7 @@ function matrixOverview(d){
   return h;
 }
 
-/* ---------- Giao dịch ---------- */
+/* ---------- Chi tiêu ---------- */
 function viewList(){
   var d = state.data;
   if(d.kind === "matrix") return matrixTable(d);
