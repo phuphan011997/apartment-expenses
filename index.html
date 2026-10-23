@@ -32,7 +32,7 @@ img{max-width:100%}
   --accent:#0E6A54; --accent-ink:#0A4F3F; --accent-soft:#D8EDE4;
   --warn:#A8521B; --warn-soft:#F6E6D7;
   --sel:#FBE2DF; --sel-ink:#B3362B;
-  --b-save:#2563EB; --b-edit:#7C3AED; --b-sync:#0891B2; --b-del:#DC2626;
+  --b-save:#2563EB; --b-edit:#7C3AED; --b-sync:#0891B2; --b-resync:#16A34A; --b-del:#DC2626;
   --c1:#0E6A54; --c2:#C87A2B; --c3:#5B5BD6; --c4:#B0426A; --c5:#2A7FA8; --c6:#6F8B1E;
   --font-ui:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',sans-serif;
   --font-num:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
@@ -242,8 +242,8 @@ td.zero{color:var(--muted);opacity:.5}
    Nút đặc = việc chính; .soft = cùng loại nhưng phụ. Màu đậm, khác hẳn màu nhạt của tên người. */
 :root{--tone-c:#000000;--tone-p:0%;--btn-ink:#FFFFFF}
 .btn.b-save{--b:var(--b-save)} .btn.b-edit,.lnk.b-edit,.eadd.b-edit{--b:var(--b-edit)}
-.btn.b-sync,.lnk.b-sync{--b:var(--b-sync)} .btn.b-del,.lnk.b-del{--b:var(--b-del)}
-.btn.b-save,.btn.b-edit,.btn.b-sync,.btn.b-del{--bb:color-mix(in srgb,var(--b),var(--tone-c) var(--tone-p));background:var(--bb);border-color:var(--bb);color:var(--btn-ink)}
+.btn.b-sync,.lnk.b-sync{--b:var(--b-sync)} .btn.b-resync{--b:var(--b-resync)} .btn.b-del,.lnk.b-del{--b:var(--b-del)}
+.btn.b-save,.btn.b-edit,.btn.b-sync,.btn.b-resync,.btn.b-del{--bb:color-mix(in srgb,var(--b),var(--tone-c) var(--tone-p));background:var(--bb);border-color:var(--bb);color:var(--btn-ink)}
 .btn.soft{background:color-mix(in srgb,var(--bb) 13%,var(--surface));border-color:color-mix(in srgb,var(--bb) 45%,var(--surface));color:color-mix(in srgb,var(--bb) 85%,var(--fg))}
 .lnk.b-edit,.lnk.b-sync,.lnk.b-del,.eadd.b-edit{color:color-mix(in srgb,color-mix(in srgb,var(--b),var(--tone-c) var(--tone-p)) 88%,var(--fg))}
 .eadd.b-edit{border-color:color-mix(in srgb,var(--b) 50%,var(--surface));background:color-mix(in srgb,var(--b) 6%,transparent)}
@@ -1772,6 +1772,7 @@ function viewSheets(){
       '<div class="r"><span class="btn sm b-save">Lưu</span>Lưu, xác nhận, thêm</div>' +
       '<div class="r"><span class="btn sm b-edit">Sửa</span>Nhập, sửa chi tiêu</div>' +
       '<div class="r"><span class="btn sm b-sync">Đồng bộ</span>Việc với Google Sheet</div>' +
+      '<div class="r"><span class="btn sm b-resync">Đồng bộ lại</span>Ghi lại note đã lên sheet</div>' +
       '<div class="r"><span class="btn sm b-del">Xoá</span>Xoá</div>' +
       '<div class="r"><span class="btn sm">Huỷ</span>Huỷ, quay lại, thử lại</div>' +
     '</div>' +
@@ -2097,7 +2098,7 @@ function syncBlock(it){
     : st === "stale" ? '<span class="chip warn">Đã sửa, chưa cập nhật sheet</span>'
     : '<span class="chip">Chưa lên sheet</span>';
   if(L.syncFor !== it.id){
-    return '<div class="nsync">' + chip + '<button class="btn sm b-sync' + (st === "done" ? " soft" : "") + '" data-act="syncOpen" data-id="' + esc(it.id) + '">' +
+    return '<div class="nsync">' + chip + '<button class="btn sm ' + (st === "done" ? "b-resync" : "b-sync") + '" data-act="syncOpen" data-id="' + esc(it.id) + '">' +
       (st === "done" ? "Đồng bộ lại" : "Đồng bộ") + '</button></div>';
   }
   var tabs = syncTabs();
