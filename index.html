@@ -2593,11 +2593,41 @@ document.addEventListener("visibilitychange", function(){
   if(!document.hidden && state.source === "live" && state.fetchedAt && Date.now() - state.fetchedAt.getTime() > 45000) reload();
 });
 
+/* Có Apps Script thì lấy được danh sách tab thật của sheet: thêm tab mới,
+   bỏ tab đã đổi tên hoặc xoá, và khi có tab tuần mới thì tự chuyển sang tab mới nhất. */
+function latestWeekTab(tabs){
+  var best = "", bestEnd = null, y = new Date().getFullYear();
+  tabs.forEach(function(t){
+    var r = tabRange(t, y);
+    if(r && (!bestEnd || r.b >= bestEnd)){ best = t; bestEnd = r.b; }
+  });
+  return best;
+}
+function discoverTabs(){
+  if(state.mode === "snapshot") return;
+  api("GET", "sheet/tabs").then(function(r){
+    if(r.__status !== 200 || !r.tabs || !r.tabs.length) return;
+    var tabs = r.tabs, known = state.sheets;
+    var added = tabs.filter(function(t){ return known.indexOf(t) < 0; });
+    var same = added.length === 0 && known.every(function(t){ return tabs.indexOf(t) >= 0; });
+    if(same) return;
+    state.sheets = tabs.slice();
+    var next = state.current;
+    var newest = latestWeekTab(added);
+    if(newest && newest === latestWeekTab(tabs)) next = newest;           // có tab tuần mới nhất
+    if(tabs.indexOf(next) < 0) next = latestWeekTab(tabs) || tabs[0];     // tab đang xem đã bị đổi tên/xoá
+    var changed = next !== state.current;
+    state.current = next; save();
+    if(changed){ state.msg = ""; reload(); } else render();
+  }).catch(function(){});
+}
+
 load();
 applyTone();
 if(state.sheets.indexOf(state.current) < 0) state.current = state.sheets[0];
 render();
 reload();
+discoverTabs();
 })();
 </script>
 

@@ -116,6 +116,10 @@ thêm tab mới, đổi nguồn dữ liệu. Chọn xong app quay lại đúng m
 
 ## Thêm tab mới
 
+Đã cài Apps Script (xem `apps-script/README.md`) thì mỗi lần mở, app tự lấy danh sách tab
+thật của sheet: có tab tuần mới thì tự chuyển sang tab mới nhất, tab bị đổi tên hoặc xoá
+thì bỏ khỏi danh sách. Chưa cài thì làm tay như dưới.
+
 Google không cho đọc danh sách tab từ bên ngoài. Trong trang Nâng cao có hai cách: gõ đúng tên tab
 vào ô "Thêm tab mới" (app kiểm tra trước khi thêm), hoặc bấm "Tự dò tab theo
 tuần" để app thử các tên dạng `16.10-22.10`. Danh sách tab đã thêm được nhớ
