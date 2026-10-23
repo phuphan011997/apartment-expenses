@@ -1798,7 +1798,7 @@ function blankLine(prev){ return { buyer: prev ? prev.buyer : "", desc: "", qty:
 function formFrom(it){
   var p = {}; it.participants.forEach(function(x){ p[x] = 1; });
   var lines = (it.lines || []).map(function(l){
-    return { buyer: l.buyer || "", desc: l.desc || "", qty: l.qty || "", expr: l.expr || (l.amount == null ? "" : String(l.amount)), left: l.left || "" };
+    return { buyer: l.buyer || "", desc: l.desc || "", qty: l.qty || "", expr: l.amount == null ? "" : String(l.amount), left: l.left || "" };
   });
   /* note cũ chỉ có số tiền + người trả: chuyển thành một món */
   if(!lines.length && it.amount) lines.push({ buyer: it.payer || "", desc: it.title, qty: "", expr: String(it.amount), left: "" });
@@ -2175,8 +2175,8 @@ function viewEntry(f){
       '<div class="ef"><label for="ln' + i + 'd">Mô tả</label><input type="text" id="ln' + i + 'd" data-li="' + i + '" data-lf="desc" maxlength="120" placeholder="Ví dụ Trứng gà" value="' + esc(l.desc) + '"></div>' +
       '<div class="egrid">' +
         '<div class="ef"><label for="ln' + i + 'q">SL</label><input type="text" id="ln' + i + 'q" data-li="' + i + '" data-lf="qty" maxlength="40" placeholder="6 quả" value="' + esc(l.qty) + '"></div>' +
-        '<div class="ef"><label for="ln' + i + 'a">Số tiền</label><input type="text" id="ln' + i + 'a" data-li="' + i + '" data-lf="expr" inputmode="text" maxlength="60" placeholder="24000" value="' + esc(l.expr) + '">' +
-          '<span class="calc" id="ln' + i + 'c">' + esc(p.error ? "Chưa đúng" : p.formula ? "= " + vnd(p.amount) : "") + '</span></div>' +
+        '<div class="ef"><label for="ln' + i + 'a">Số tiền</label><input type="text" id="ln' + i + 'a" data-li="' + i + '" data-lf="expr" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="24000" value="' + esc(l.expr) + '">' +
+          '<span class="calc" id="ln' + i + 'c">' + esc(p.amount ? vnd(p.amount) : "") + '</span></div>' +
       '</div>' +
       '<div class="ef"><label for="ln' + i + 'l">Dư lại</label><input type="text" id="ln' + i + 'l" data-li="' + i + '" data-lf="left" maxlength="40" placeholder="Không có thì để trống" value="' + esc(l.left) + '"></div>' +
     '</div>';
@@ -2364,11 +2364,13 @@ function wireItems(){
   root.addEventListener("input", function(e){
     var el = e.target; if(!el.dataset || !el.dataset.lf) return;
     var ln = L.form.lines[+el.dataset.li]; if(!ln) return;
-    ln[el.dataset.lf] = el.value;
     if(el.dataset.lf === "expr"){
-      var p = parseAmount(el.value), c = document.getElementById("ln" + el.dataset.li + "c");
-      if(c) c.textContent = p.error ? "Chưa đúng" : p.formula ? "= " + vnd(p.amount) : "";
+      var digits = el.value.replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+      if(digits !== el.value) el.value = digits;
+      var p = parseAmount(digits), c = document.getElementById("ln" + el.dataset.li + "c");
+      if(c) c.textContent = p.amount ? vnd(p.amount) : "";
     }
+    ln[el.dataset.lf] = el.value;
     var t = document.getElementById("enTotal"); if(t) t.textContent = vnd(linesTotal(L.form.lines));
     var n = document.getElementById("enCount"); if(n) n.textContent = L.form.lines.filter(function(l){ return !lineEmpty(l); }).length + " món";
   });
