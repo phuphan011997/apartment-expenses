@@ -1,13 +1,15 @@
 # Chi Tiêu Nhà Chung
 
-Web app xem chi tiêu nhà chung trên điện thoại. Phần số liệu đọc từ Google Sheet
-(chỉ đọc, không bao giờ ghi vào sheet). Tab **Note** lưu riêng vào MongoDB.
+Web app xem chi tiêu nhà chung trên điện thoại. Phần số liệu đọc từ Google Sheet.
+Tab **Note** lưu vào MongoDB. Chỉ khi bấm **Đồng bộ** trên một note thì các món của
+note đó mới được ghi lên sheet, qua Apps Script (xem `apps-script/README.md`).
 
 ## Cấu trúc
 
 ```
 index.html     toàn bộ giao diện, logic đọc sheet, và bản sao dữ liệu dự phòng
 api/index.js   API cho tab Note, chạy như một serverless function trên Vercel
+apps-script/   Code.gs dán vào Google Sheet để app ghi được lên sheet
 vercel.json    chuyển mọi đường dẫn /api/* về api/index.js
 package.json   khai thư viện mongodb cho API
 ```
@@ -39,8 +41,10 @@ gọi API phải kèm mã này. Mỗi máy nhập mã một lần, app tự nh�
 | `PUT /api/members/:id` | thêm hoặc sửa một người `{ name, order }` |
 | `DELETE /api/members/:id` | xoá người; bị chặn nếu người đó còn trong note |
 | `GET /api/items` | danh sách note, mới nhất trước |
-| `PUT /api/items/:id` | thêm hoặc sửa `{ title, date: "YYYY-MM-DD", participants: [id], amount?, payer?, note? }` |
+| `PUT /api/items/:id` | thêm hoặc sửa `{ title, date: "YYYY-MM-DD", participants: [id], lines?: [{ buyer, desc, qty, expr, left }], note? }` |
 | `DELETE /api/items/:id` | xoá note |
+| `POST /api/items/:id/sync` | ghi các món của note lên tab `{ sheet, force? }` |
+| `GET /api/sheet/tabs` | danh sách tab trong sheet (qua Apps Script) |
 
 Mã do app tự tạo (`it_…`, `m_…`), nên PUT gửi lại nhiều lần cũng không sinh bản ghi trùng.
 
@@ -93,8 +97,10 @@ Thanh menu dưới cùng:
   người đó có phần chia hôm đó; bấm một ngày để xem ai tham gia, các món đã mua và
   dòng CK. Đầu tab có thẻ **Kiểm tra sheet** báo sheet chia đủ hay lệch, lệch ở đâu.
 - **Thống kê** — tỉ lệ theo người, khoản lớn nhất, đồ còn dư trong bếp
-- **Note** — ghi chú chi tiêu (ví dụ "Ăn trưa 18/10"), chọn người tham gia, tuỳ chọn
-  số tiền và người trả; lọc theo người để xem phần mình. Mỗi note một thẻ, ghi số
+- **Note** — ghi chú chi tiêu (ví dụ "Ăn trưa 18/10"), chọn người tham gia. Nút
+  **Nhập chi tiêu** mở màn hình nhập từng món giống sheet: Người mua, Mô tả, SL, Số tiền
+  (gõ được `6*4000`, `35k`), Dư lại. Lưu note là lưu luôn các món. Note có món thì có nút
+  **Đồng bộ** để ghi lên tab tuần; app tự chọn tab theo ngày. Lọc theo người để xem phần mình. Mỗi note một thẻ, ghi số
   người tham gia. Chế độ **Lịch** theo tháng hiện số note và số người mỗi ngày. Lưu vào MongoDB.
 
 Màu của từng người lấy theo màu nền tên trong sheet (bảng tổng hợp cuối tab tuần),
