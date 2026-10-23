@@ -107,6 +107,10 @@ Màu của từng người lấy theo màu nền tên trong sheet (bảng tổng
 ghép theo tên kể cả viết tắt ("Chị VAnh" = "Chị Vân Anh"). Google không trả màu khi
 đọc trực tiếp, nên màu được lấy từ file sheet lúc đóng gói app.
 
+Màu nút theo loại việc: **xanh dương** lưu/xác nhận/thêm, **tím** nhập/sửa chi tiêu,
+**xanh ngọc** việc với Google Sheet, **đỏ** xoá, **viền xám** huỷ/quay lại/thử lại. Nút đặc
+là việc chính, nút nền nhạt là việc phụ cùng loại. Độ đậm nhạt chỉnh trong Nâng cao → Màu nút.
+
 **Nâng cao** (nút ở đầu trang, hoặc bấm vào tên tab sheet): chọn tab sheet đang xem,
 thêm tab mới, đổi nguồn dữ liệu. Chọn xong app quay lại đúng màn hình đang xem.
 

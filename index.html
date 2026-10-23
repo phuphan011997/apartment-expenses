@@ -32,6 +32,7 @@ img{max-width:100%}
   --accent:#0E6A54; --accent-ink:#0A4F3F; --accent-soft:#D8EDE4;
   --warn:#A8521B; --warn-soft:#F6E6D7;
   --sel:#FBE2DF; --sel-ink:#B3362B;
+  --b-save:#2563EB; --b-edit:#7C3AED; --b-sync:#0891B2; --b-del:#DC2626;
   --c1:#0E6A54; --c2:#C87A2B; --c3:#5B5BD6; --c4:#B0426A; --c5:#2A7FA8; --c6:#6F8B1E;
   --font-ui:'Be Vietnam Pro',system-ui,-apple-system,'Segoe UI',sans-serif;
   --font-num:'IBM Plex Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
@@ -237,6 +238,20 @@ td.zero{color:var(--muted);opacity:.5}
 .opt .nm{flex:1;min-width:0;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 16px;border-radius:11px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none}
 .btn.pri{background:var(--accent);border-color:var(--accent);color:#FFFFFF}
+/* Màu nút theo loại việc. Độ đậm nhạt chỉnh trong Nâng cao (biến --tone-c, --tone-p).
+   Nút đặc = việc chính; .soft = cùng loại nhưng phụ. Màu đậm, khác hẳn màu nhạt của tên người. */
+:root{--tone-c:#000000;--tone-p:0%;--btn-ink:#FFFFFF}
+.btn.b-save{--b:var(--b-save)} .btn.b-edit,.lnk.b-edit,.eadd.b-edit{--b:var(--b-edit)}
+.btn.b-sync,.lnk.b-sync{--b:var(--b-sync)} .btn.b-del,.lnk.b-del{--b:var(--b-del)}
+.btn.b-save,.btn.b-edit,.btn.b-sync,.btn.b-del{--bb:color-mix(in srgb,var(--b),var(--tone-c) var(--tone-p));background:var(--bb);border-color:var(--bb);color:var(--btn-ink)}
+.btn.soft{background:color-mix(in srgb,var(--bb) 13%,var(--surface));border-color:color-mix(in srgb,var(--bb) 45%,var(--surface));color:color-mix(in srgb,var(--bb) 85%,var(--fg))}
+.lnk.b-edit,.lnk.b-sync,.lnk.b-del,.eadd.b-edit{color:color-mix(in srgb,color-mix(in srgb,var(--b),var(--tone-c) var(--tone-p)) 88%,var(--fg))}
+.eadd.b-edit{border-color:color-mix(in srgb,var(--b) 50%,var(--surface));background:color-mix(in srgb,var(--b) 6%,transparent)}
+.lnk.b-del.armed{background:var(--b-del);color:#FFFFFF;padding:2px 8px;border-radius:7px}
+.btnlegend{display:flex;flex-direction:column;gap:8px}
+.btnlegend .r{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.btnlegend .r .btn{min-width:96px;flex:none}
+#fTone button{font-size:12.5px;white-space:nowrap;padding:8px 2px}
 .btn[disabled]{opacity:.5;cursor:default}
 .btnrow{display:flex;gap:8px;flex-wrap:wrap}
 .hint{font-size:12.5px;color:var(--muted);line-height:1.5}
@@ -456,6 +471,7 @@ var state = {
   payDay: "",              // ngày đang mở trong lịch Thanh toán
   payOrient: "h",          // h: hàng là người | v: hàng là ngày
   noteView: "list",        // list | cal
+  btnTone: 0,              // độ đậm màu nút: -2 nhạt … 0 vừa … 2 đậm
   prevTab: "overview"      // quay về tab này khi rời trang Nâng cao
 };
 
@@ -463,7 +479,7 @@ var state = {
 function save(){
   try{ localStorage.setItem(LS, JSON.stringify({
     sheets: state.sheets, current: state.current, mode: state.mode, payWho: state.payWho,
-    payView: state.payView, noteView: state.noteView, payOrient: state.payOrient,
+    payView: state.payView, noteView: state.noteView, payOrient: state.payOrient, btnTone: state.btnTone,
     theme: document.documentElement.getAttribute("data-theme") || ""
   })); }catch(e){}
 }
@@ -479,8 +495,16 @@ function load(){
     if(o.payView === "cal" || o.payView === "list") state.payView = o.payView;
     if(o.noteView === "cal" || o.noteView === "list") state.noteView = o.noteView;
     if(o.payOrient === "h" || o.payOrient === "v") state.payOrient = o.payOrient;
+    if(typeof o.btnTone === "number" && o.btnTone >= -2 && o.btnTone <= 2) state.btnTone = o.btnTone;
     if(o.theme) document.documentElement.setAttribute("data-theme", o.theme);
   }catch(e){}
+}
+function applyTone(){
+  var t = state.btnTone, r = document.documentElement.style;
+  r.setProperty("--tone-c", t < 0 ? "#FFFFFF" : "#000000");
+  r.setProperty("--tone-p", Math.abs(t) * 14 + "%");
+  /* màu đã pha trắng thì chữ trắng khó đọc, đổi sang chữ tối */
+  r.setProperty("--btn-ink", t < 0 ? "#0B1220" : "#FFFFFF");
 }
 
 /* ---------- định dạng ---------- */
@@ -1723,8 +1747,8 @@ function viewSheets(){
     '<div class="diff" style="margin-top:12px"><span>Đang dùng: <b>' +
       (live ? "Google Sheet trực tiếp" : "bản sao (chụp " + SNAP_TAKEN + ")") + "</b>" +
       (state.fetchedAt ? " · đọc lúc " + hhmm(state.fetchedAt) : "") + '</span></div>' +
-    '<div class="btnrow" style="margin-top:12px"><button class="btn pri" id="reloadBtn">Tải lại ngay</button>' +
-    '<a class="btn" href="' + SHEET_URL + '" target="_blank" rel="noopener">Mở Google Sheet</a></div></div>';
+    '<div class="btnrow" style="margin-top:12px"><button class="btn b-sync" id="reloadBtn">Tải lại ngay</button>' +
+    '<a class="btn b-sync soft" href="' + SHEET_URL + '" target="_blank" rel="noopener">Mở Google Sheet</a></div></div>';
 
   var h = '<div class="backbar"><h1>Nâng cao</h1><button class="btn" id="advBack">Xong</button></div>' +
     '<div class="card"><div class="ttl"><h2>Tab sheet đang xem</h2><em>' + state.sheets.length + ' tab</em></div>' +
@@ -1738,11 +1762,24 @@ function viewSheets(){
 
   h += '<div class="card"><div class="ttl"><h2>Thêm tab mới</h2></div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="newSheet" placeholder="Tên tab, ví dụ 16.10-22.10" style="flex:1;min-width:160px">' +
-    '<button class="btn pri" id="addSheet">Thêm</button></div>' +
-    '<div class="btnrow" style="margin-top:12px"><button class="btn" id="scanBtn"' + (state.busy ? " disabled" : "") + '>' +
+    '<button class="btn b-save" id="addSheet">Thêm</button></div>' +
+    '<div class="btnrow" style="margin-top:12px"><button class="btn b-sync soft" id="scanBtn"' + (state.busy ? " disabled" : "") + '>' +
       (state.busy === "scan" ? "Đang dò…" : "Tự dò tab theo tuần") + '</button></div>' +
     (state.msg ? '<div class="hint" style="margin-top:10px">' + esc(state.msg) + '</div>' : "") + '</div>';
-  return h + src;
+  var tones = [[-2, "Nhạt"], [-1, "Hơi nhạt"], [0, "Vừa"], [1, "Hơi đậm"], [2, "Đậm"]];
+  var colors = '<div class="card"><div class="ttl"><h2>Màu nút</h2></div>' +
+    '<div class="btnlegend">' +
+      '<div class="r"><span class="btn sm b-save">Lưu</span>Lưu, xác nhận, thêm</div>' +
+      '<div class="r"><span class="btn sm b-edit">Sửa</span>Nhập, sửa chi tiêu</div>' +
+      '<div class="r"><span class="btn sm b-sync">Đồng bộ</span>Việc với Google Sheet</div>' +
+      '<div class="r"><span class="btn sm b-del">Xoá</span>Xoá</div>' +
+      '<div class="r"><span class="btn sm">Huỷ</span>Huỷ, quay lại, thử lại</div>' +
+    '</div>' +
+    '<div class="flabel" style="margin-top:14px">Độ đậm</div>' +
+    '<div class="seg" id="fTone">' + tones.map(function(t){
+      return '<button data-v="' + t[0] + '" aria-pressed="' + (state.btnTone === t[0]) + '">' + t[1] + '</button>';
+    }).join("") + '</div></div>';
+  return h + src + colors;
 }
 
 /* ---------- render ---------- */
@@ -2060,7 +2097,7 @@ function syncBlock(it){
     : st === "stale" ? '<span class="chip warn">Đã sửa, chưa cập nhật sheet</span>'
     : '<span class="chip">Chưa lên sheet</span>';
   if(L.syncFor !== it.id){
-    return '<div class="nsync">' + chip + '<button class="btn sm' + (st === "done" ? "" : " pri") + '" data-act="syncOpen" data-id="' + esc(it.id) + '">' +
+    return '<div class="nsync">' + chip + '<button class="btn sm b-sync' + (st === "done" ? " soft" : "") + '" data-act="syncOpen" data-id="' + esc(it.id) + '">' +
       (st === "done" ? "Đồng bộ lại" : "Đồng bộ") + '</button></div>';
   }
   var tabs = syncTabs();
@@ -2072,8 +2109,8 @@ function syncBlock(it){
     (!L.sheetSync ? '<div class="ferr" style="margin-top:0">Chưa cài Apps Script trên máy chủ.</div>' : "") +
     (L.syncErr ? '<div class="ferr" style="margin-top:0">' + esc(L.syncErr) + '</div>' : "") +
     '<div class="btnrow">' +
-      (L.syncConflict ? '<button class="btn sm pri" data-act="syncForce" data-id="' + esc(it.id) + '"' + (L.syncBusy ? " disabled" : "") + '>Ghi thành dòng mới</button>'
-        : '<button class="btn sm pri" data-act="syncGo" data-id="' + esc(it.id) + '"' + (L.syncBusy || !L.sheetSync ? " disabled" : "") + '>' + (L.syncBusy ? "Đang ghi…" : "Ghi lên sheet") + '</button>') +
+      (L.syncConflict ? '<button class="btn sm b-sync" data-act="syncForce" data-id="' + esc(it.id) + '"' + (L.syncBusy ? " disabled" : "") + '>Ghi thành dòng mới</button>'
+        : '<button class="btn sm b-sync" data-act="syncGo" data-id="' + esc(it.id) + '"' + (L.syncBusy || !L.sheetSync ? " disabled" : "") + '>' + (L.syncBusy ? "Đang ghi…" : "Ghi lên sheet") + '</button>') +
       '<button class="btn sm" data-act="syncCancel">Huỷ</button></div></div>';
 }
 function noteLines(it){
@@ -2100,8 +2137,8 @@ function noteCard(it){
     noteLines(it) +
     (it.note ? '<div class="nnote">' + esc(it.note) + '</div>' : "") +
     syncBlock(it) +
-    '<div class="acts"><button class="lnk" data-act="edit" data-id="' + esc(it.id) + '">Sửa</button>' +
-      '<button class="lnk warn" data-act="del" data-id="' + esc(it.id) + '">' + (armed ? "Bấm lần nữa để xoá" : "Xoá") + '</button></div></div>';
+    '<div class="acts"><button class="lnk b-edit" data-act="edit" data-id="' + esc(it.id) + '">Sửa</button>' +
+      '<button class="lnk b-del' + (armed ? " armed" : "") + '" data-act="del" data-id="' + esc(it.id) + '">' + (armed ? "Bấm lần nữa để xoá" : "Xoá") + '</button></div></div>';
 }
 function noteDays(list){
   return byKey(list, function(it){ return it.date; }).map(function(g){
@@ -2156,7 +2193,7 @@ function exBox(f){
       ? '<b>' + esc(vnd(linesTotal(lines))) + '</b> · ' + lines.length + ' món<small>' +
         (who.length ? who.map(function(b){ return esc(memberName(b)); }).join(", ") + " mua" : "Chưa chọn người mua") + '</small>'
       : 'Chi tiêu<small>Chưa nhập món nào</small>') +
-    '</div><button class="btn sm' + (lines.length ? "" : " pri") + '" data-act="openEntry">' + (lines.length ? "Sửa chi tiêu" : "Nhập chi tiêu") + '</button></div>';
+    '</div><button class="btn sm b-edit' + (lines.length ? " soft" : "") + '" data-act="openEntry">' + (lines.length ? "Sửa chi tiêu" : "Nhập chi tiêu") + '</button></div>';
 }
 /* màn hình nhập chi tiêu: mỗi món một khung, đúng các cột của sheet */
 function viewEntry(f){
@@ -2170,7 +2207,7 @@ function viewEntry(f){
   var body = f.lines.map(function(l, i){
     var p = parseAmount(l.expr);
     return '<div class="eline"><div class="ehd"><span class="no">' + (i + 1) + '</span>' +
-        '<button class="lnk warn" data-act="delLine" data-i="' + i + '">Xoá món</button></div>' +
+        '<button class="lnk b-del" data-act="delLine" data-i="' + i + '">Xoá món</button></div>' +
       '<div class="ef"><label for="ln' + i + 'b">Người mua</label><select id="ln' + i + 'b" data-li="' + i + '" data-lf="buyer">' + opts(l.buyer) + '</select></div>' +
       '<div class="ef"><label for="ln' + i + 'd">Mô tả</label><input type="text" id="ln' + i + 'd" data-li="' + i + '" data-lf="desc" maxlength="120" placeholder="Ví dụ Trứng gà" value="' + esc(l.desc) + '"></div>' +
       '<div class="egrid">' +
@@ -2185,12 +2222,12 @@ function viewEntry(f){
     '<div class="ehead"><div class="wrap"><button class="iconbtn" data-act="closeEntry" aria-label="Quay lại"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"></path></svg></button>' +
       '<div class="tt"><h1>Chi tiêu</h1><small>' + esc(f.title || "Note mới") + (d ? " · " + esc(dshort(d)) : "") + '</small></div></div></div>' +
     '<div class="ebody" id="entryBody"><div class="wrap">' + body +
-      '<button class="eadd" data-act="addLine">+ Thêm món</button>' +
+      '<button class="eadd b-edit" data-act="addLine">+ Thêm món</button>' +
       (L.err ? '<div class="ferr">' + esc(L.err) + '</div>' : "") +
     '</div></div>' +
     '<div class="efoot"><div class="wrap"><div class="sum"><span id="enCount">' + f.lines.filter(function(l){ return !lineEmpty(l); }).length + ' món</span>' +
       '<b id="enTotal">' + esc(vnd(linesTotal(f.lines))) + '</b></div>' +
-      '<button class="btn pri" data-act="closeEntry">Xong</button></div></div></div>';
+      '<button class="btn b-save" data-act="closeEntry">Xong</button></div></div></div>';
 }
 
 function viewItems(){
@@ -2204,17 +2241,17 @@ function viewItems(){
   }
   if(L.status === "no_db"){
     return '<div class="card" id="ledger"><div class="ttl"><h2>Chưa nối database</h2></div>' +
-      '<div class="btnrow"><button class="btn pri" data-act="retry">Kiểm tra lại</button></div></div>';
+      '<div class="btnrow"><button class="btn" data-act="retry">Kiểm tra lại</button></div></div>';
   }
   if(L.status === "need_token"){
     return '<div class="card" id="ledger"><div class="ttl"><h2>Nhập mã truy cập</h2></div>' +
       '<div style="display:flex;gap:8px"><input type="password" id="lfToken" placeholder="Mã truy cập" autocomplete="off" style="flex:1">' +
-      '<button class="btn pri" data-act="token">Mở</button></div>' +
+      '<button class="btn b-save" data-act="token">Mở</button></div>' +
       (L.msg ? '<div class="ferr">' + esc(L.msg) + '</div>' : "") + '</div>';
   }
   if(L.status === "error"){
     return '<div id="ledger"><div class="err">' + esc(L.msg || "Có lỗi khi tải dữ liệu.") + '</div>' +
-      '<div class="btnrow" style="margin-top:12px"><button class="btn pri" data-act="retry">Thử lại</button></div></div>';
+      '<div class="btnrow" style="margin-top:12px"><button class="btn" data-act="retry">Thử lại</button></div></div>';
   }
 
   var h = '<div id="ledger" style="display:flex;flex-direction:column;gap:14px">';
@@ -2224,10 +2261,10 @@ function viewItems(){
   if(!L.members.length){
     var seed = sheetNames();
     h += '<div class="card"><div class="ttl"><h2>Thêm người trong nhà</h2></div>' +
-      (seed.length ? '<div class="btnrow"><button class="btn pri" data-act="seed"' + (L.busy ? " disabled" : "") +
+      (seed.length ? '<div class="btnrow"><button class="btn b-save" data-act="seed"' + (L.busy ? " disabled" : "") +
         '>Thêm ' + seed.length + ' người từ sheet</button></div>' : "") +
       '<div class="flabel">Hoặc gõ tên</div><div style="display:flex;gap:8px"><input type="text" id="lfMember" placeholder="Tên người" style="flex:1">' +
-      '<button class="btn" data-act="addMember"' + (L.busy ? " disabled" : "") + '>Thêm</button></div>' +
+      '<button class="btn b-save soft" data-act="addMember"' + (L.busy ? " disabled" : "") + '>Thêm</button></div>' +
       (L.memberMsg ? '<div class="ferr">' + esc(L.memberMsg) + '</div>' : "") + '</div>';
     return h + '</div>';
   }
@@ -2251,7 +2288,7 @@ function viewItems(){
     '<input type="text" id="lfNote" maxlength="300" placeholder="Ghi chú (tuỳ chọn)" value="' + esc(f.note) + '" style="margin-top:8px">' +
     '<div class="hintline" id="lfHint">' + esc(formHint()) + '</div>' +
     (L.err ? '<div class="ferr">' + esc(L.err) + '</div>' : "") +
-    '<div class="btnrow" style="margin-top:12px"><button class="btn pri" data-act="save"' + (L.saving ? " disabled" : "") + '>' +
+    '<div class="btnrow" style="margin-top:12px"><button class="btn b-save" data-act="save"' + (L.saving ? " disabled" : "") + '>' +
       (L.saving ? "Đang lưu…" : editing ? "Lưu thay đổi" : "Lưu note") + '</button></div></div>';
   if(L.entry) h += viewEntry(f);
 
@@ -2286,10 +2323,10 @@ function viewItems(){
     L.members.map(function(m){
       var armed = L.delArm === "m:" + m.id;
       return '<div class="row"><div class="main"><div class="nm">' + pdot(m.name) + esc(m.name) + '</div></div>' +
-        '<button class="lnk warn" data-act="delMember" data-id="' + esc(m.id) + '">' + (armed ? "Bấm lần nữa để xoá" : "Xoá") + '</button></div>';
+        '<button class="lnk b-del' + (armed ? " armed" : "") + '" data-act="delMember" data-id="' + esc(m.id) + '">' + (armed ? "Bấm lần nữa để xoá" : "Xoá") + '</button></div>';
     }).join("") + '</div>' +
     '<div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="lfMember" placeholder="Thêm người" style="flex:1">' +
-    '<button class="btn" data-act="addMember"' + (L.busy ? " disabled" : "") + '>Thêm</button></div>' +
+    '<button class="btn b-save soft" data-act="addMember"' + (L.busy ? " disabled" : "") + '>Thêm</button></div>' +
     (L.memberMsg ? '<div class="ferr">' + esc(L.memberMsg) + '</div>' : "") + '</div>';
 
   return h + '</div>';
@@ -2403,7 +2440,7 @@ function render(){
   if(state.tab === "sheets") html = viewSheets();
   else if(state.tab === "items") html = viewItems();
   else if(state.loading && !state.data) html = skeleton();
-  else if(state.error) html = '<div class="err">' + esc(state.error) + '</div><div class="btnrow" style="margin-top:12px"><button class="btn pri" id="retry">Thử lại</button></div>';
+  else if(state.error) html = '<div class="err">' + esc(state.error) + '</div><div class="btnrow" style="margin-top:12px"><button class="btn" id="retry">Thử lại</button></div>';
   else if(!state.data) html = '<div class="empty">Chưa có dữ liệu.</div>';
   else if(state.data.kind === "unknown") html = '<div class="err">Không nhận ra cấu trúc tab “' + esc(state.current) +
     '”. App đọc được hai kiểu bảng: bảng mua hàng (có cột “Người mua”) và bảng chi phí nhà (có cột “Danh mục”).</div>';
@@ -2457,6 +2494,11 @@ function wire(){
   if(fp) fp.addEventListener("click", function(e){
     var b = e.target.closest(".pill"); if(!b || b.dataset.v === state.payWho) return;
     state.payWho = b.dataset.v; save(); render();
+  });
+  var ft = document.getElementById("fTone");
+  if(ft) ft.addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    state.btnTone = +b.dataset.v; applyTone(); save(); render();
   });
   var fm = document.getElementById("fMode");
   if(fm) fm.addEventListener("click", function(e){
@@ -2540,6 +2582,7 @@ document.addEventListener("visibilitychange", function(){
 });
 
 load();
+applyTone();
 if(state.sheets.indexOf(state.current) < 0) state.current = state.sheets[0];
 render();
 reload();
