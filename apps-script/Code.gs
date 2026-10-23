@@ -6,6 +6,8 @@
  * Script chỉ ghi 6 cột đó, không đụng khối chia tiền hay công thức khác.
  *
  * Cài đặt: xem apps-script/README.md
+ *
+ * @OnlyCurrentDoc  chỉ xin quyền với đúng file sheet này, không đụng file khác trong Drive
  */
 
 // Đổi chuỗi này thành mã bí mật của bạn, và đặt cùng giá trị vào biến
