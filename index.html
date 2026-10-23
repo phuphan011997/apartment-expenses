@@ -341,6 +341,10 @@ table.pgrid{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
 .ncard .acts{margin-top:0;padding-top:8px;border-top:1px solid var(--line)}
 .sechead .sub3{font-size:12px;color:var(--muted);font-family:inherit;font-weight:500}
 .nlines{display:flex;flex-direction:column}
+.ntoggle{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:8px 0 2px;border:0;border-top:1px dashed var(--line);background:none;color:var(--muted);font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left}
+.ntoggle span{min-width:0;overflow-wrap:anywhere}
+.ntoggle svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+.ntoggle[aria-expanded="true"] svg{transform:rotate(180deg)}
 .nline{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:7px 0;border-top:1px dashed var(--line);font-size:13.5px}
 .nline .t{min-width:0;overflow-wrap:anywhere}
 .nline .t small{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12px;color:var(--muted);margin-top:1px}
@@ -1798,7 +1802,7 @@ var L = {
   form: null, saving: false, err: "",
   delArm: "", flash: "", who: "all",
   memberMsg: "", busy: false,
-  sheetSync: false, entry: false,
+  sheetSync: false, entry: false, openLines: {},
   syncFor: "", syncTab: "", tabs: null, syncBusy: false, syncErr: "", syncConflict: false
 };
 function tokenGet(){ try{ return localStorage.getItem(TK) || ""; }catch(e){ return ""; } }
@@ -2118,7 +2122,13 @@ function noteLines(it){
   if(!it.lines || !it.lines.length){
     return it.payer ? '<div class="nmeta"><span>' + pdot(memberName(it.payer)) + esc(memberName(it.payer)) + ' trả</span></div>' : "";
   }
-  return '<div class="nlines">' + it.lines.map(function(l){
+  var open = !!L.openLines[it.id];
+  var who = buyersOf(it).map(function(b){ return esc(memberName(b)); }).join(", ");
+  var head = '<button class="ntoggle" data-act="lines" data-id="' + esc(it.id) + '" aria-expanded="' + open + '">' +
+    '<span>' + it.lines.length + ' món' + (who ? ' · ' + who + ' mua' : '') + '</span>' +
+    '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg></button>';
+  if(!open) return head;
+  return head + '<div class="nlines">' + it.lines.map(function(l){
     var bits = [pdot(memberName(l.buyer)) + esc(memberName(l.buyer))];
     if(l.qty) bits.push(esc(l.qty));
     if(l.left) bits.push("dư " + esc(l.left));
@@ -2380,6 +2390,7 @@ function wireItems(){
     }
     if(act === "del") return deleteItem(id);
     if(act === "who"){ L.who = id; return render(); }
+    if(act === "lines"){ L.openLines[id] = !L.openLines[id]; return render(); }
     if(act === "openEntry"){ L.entry = true; L.err = ""; return render(); }
     if(act === "closeEntry"){
       L.form.lines = L.form.lines.filter(function(l){ return !lineEmpty(l); });
