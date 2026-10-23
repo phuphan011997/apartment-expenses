@@ -609,13 +609,18 @@ function gviz(sheet, timeout, headers){
 
 /* ---------- đọc bảng mua hàng theo tuần ---------- */
 function parseLedger(g, labels){
-  var hr = -1, bc = -1, r, c, W = width(g);
-  for(r = 0; r < Math.min(g.length, 16) && hr < 0; r++){
+  /* Ô "Người mua" của bảng mua hàng là ô có "Mô tả" ngay bên phải. Bảng chia tiền
+     cũng có thể có cột "Người mua" (người đi chợ hôm đó), không được nhầm sang đó. */
+  var hr = -1, bc = -1, fr = -1, fc = -1, r, c, W = width(g);
+  for(r = 0; r < Math.min(g.length, 20) && hr < 0; r++){
     for(c = 0; c < (g[r] || []).length; c++){
       var t = txt(g[r][c]).toLowerCase();
-      if(t.length < 22 && /ng(u|ư)[oờ]i\s*mua/.test(t)){ hr = r; bc = c; break; }
+      if(!(t.length < 22 && /ng(u|ư)[oờ]i\s*mua/.test(t))) continue;
+      if(fr < 0){ fr = r; fc = c; }
+      if(/^m[oô]\s*t[aả]/i.test(txt(cell(g, r, c + 1)))){ hr = r; bc = c; break; }
     }
   }
+  if(hr < 0){ hr = fr; bc = fc; }
   if(hr < 0) return null;
 
   /* Chỉ xét vùng cột của bảng mua hàng; xa hơn là bảng chia tiền bên phải. */
@@ -757,12 +762,14 @@ function parseSplit(g, startCol, labels){
   if(!vals.length) return null;
 
   /* cột ghi chú CK: theo tên, không có thì lấy cột chữ đầu tiên sau khối số */
-  var noteCol = -1, from = (totalCol >= 0 ? totalCol : lastCol) + 1;
+  var noteCol = -1, buyerCol = -1, from = (totalCol >= 0 ? totalCol : lastCol) + 1;
   for(c = from; c < Math.min(W, from + 4); c++){
-    if(/^ck/i.test(nameOf(c))){ noteCol = c; break; }
+    if(/ng(u|ư)[oờ]i\s*mua/i.test(nameOf(c)) && buyerCol < 0) buyerCol = c;
+    else if(/^ck/i.test(nameOf(c)) && noteCol < 0) noteCol = c;
   }
   if(noteCol < 0){
     for(c = from; c < Math.min(W, from + 4); c++){
+      if(c === buyerCol) continue;
       var t = 0;
       for(i = 0; i < rows.length; i++){ if(txt(cell(g, rows[i].row, c))) t++; }
       if(t){ noteCol = c; break; }
@@ -782,7 +789,8 @@ function parseSplit(g, startCol, labels){
       shares: shares,
       total: totalCol >= 0 ? (num(cell(g, rw.row, totalCol)) || 0)
                            : shares.reduce(function(a, b){ return a + b.value; }, 0),
-      note: noteCol >= 0 ? txt(cell(g, rw.row, noteCol)) : ""
+      note: noteCol >= 0 ? txt(cell(g, rw.row, noteCol)) : "",
+      buyer: buyerCol >= 0 ? txt(cell(g, rw.row, buyerCol)) : ""
     };
   });
   return { days: days, people: people.map(function(p){ return p.name; }) };
@@ -1085,6 +1093,7 @@ function viewOverview(){
             return pchip(s.name, short(s.value));
           }).join("") + '</div>' : "") +
           '</div><div class="amt">' + esc(vnd(day.total)) + '</div></div>' +
+          (day.buyer ? '<div class="ck"><b>Người mua</b><span>' + esc(day.buyer) + '</span></div>' : "") +
           (day.note ? '<div class="ck"><b>CK cho</b><span>' + esc(day.note) + '</span></div>' : "") +
           '</div>';
       }).join("") + '</div></div>';
@@ -1413,6 +1422,7 @@ function payCalendar(d, res, sel){
         return '<div class="ditem"><div class="t"><b>' + esc(it.name) + (it.qty ? ' · ' + esc(it.qty) : "") + '</b>' +
           '<span>' + pdot(it.buyer) + esc(it.buyer) + ' mua</span></div><div class="v">' + (it.amount == null ? "—" : n(it.amount)) + '</div></div>';
       }).join("") + '</div>' : "") +
+    (day.buyer ? '<div class="dck"><b>Người mua</b><span>' + esc(day.buyer) + '</span></div>' : "") +
     (day.note ? '<div class="dck"><b>CK cho</b><span>' + esc(day.note) + '</span></div>' : "") + '</div>';
   return h;
 }
@@ -1488,6 +1498,7 @@ function personPay(d, g, moves){
             return '<div class="ditem"><div class="t"><b>' + esc(it.name) + (it.qty ? ' · ' + esc(it.qty) : "") + '</b>' +
               '<span>' + esc(it.buyer) + ' mua</span></div><div class="v">' + (it.amount == null ? "—" : n(it.amount)) + '</div></div>';
           }).join("") + '</div>' : "") +
+        (x.day.buyer ? '<div class="dck"><b>Người mua</b><span>' + esc(x.day.buyer) + '</span></div>' : "") +
         (x.day.note ? '<div class="dck"><b>CK cho</b><span>' + esc(x.day.note) + '</span></div>' : "") +
         '</div>';
     }).join("");
