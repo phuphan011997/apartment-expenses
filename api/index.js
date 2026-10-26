@@ -101,7 +101,10 @@ function parseAmount(raw) {
   } catch (e) { return { error: true }; }
 }
 
-function checkLines(arr, date) {
+/* "Tính vào chia": cả món, một phần, hoặc không tính */
+const PORTIONS = ["1", "1/2", "1/3", "2/3", "1/4", "3/4", "0"];
+
+function checkLines(arr, date, extra) {
   const lines = [];
   for (const raw of [].concat(arr || []).slice(0, 60)) {
     const l = raw || {};
@@ -112,10 +115,11 @@ function checkLines(arr, date) {
     if (a.error) return { error: "Số tiền của “" + desc + "” không hợp lệ." };
     const buyer = l.buyer && ID_RE.test(String(l.buyer)) ? String(l.buyer) : null;
     if (!buyer) return { error: "Chọn người mua cho “" + desc + "”." };
+    const portion = PORTIONS.indexOf(String(l.portion || "1")) >= 0 ? String(l.portion || "1") : "1";
     lines.push({ buyer, desc, qty: clean(l.qty, 40), expr: a.formula || (a.amount === null ? "" : String(a.amount)),
-                 amount: a.amount, formula: a.formula, left: clean(l.left, 40) });
+                 amount: a.amount, formula: a.formula, left: clean(l.left, 40), portion });
   }
-  const fp = crypto.createHash("sha1").update(JSON.stringify([date, lines])).digest("hex").slice(0, 16);
+  const fp = crypto.createHash("sha1").update(JSON.stringify([date, lines, extra || null])).digest("hex").slice(0, 16);
   return { lines, fp };
 }
 
@@ -136,7 +140,7 @@ function checkItem(b) {
   let payer = b.payer && ID_RE.test(String(b.payer)) ? String(b.payer) : null;
   const doc = { title, date, participants, amount, payer, note: clean(b.note, 300), lines: [], linesFp: null };
   if (b.lines !== undefined) {
-    const l = checkLines(b.lines, date);
+    const l = checkLines(b.lines, date, participants.slice().sort());
     if (l.error) return { error: l.error };
     doc.lines = l.lines;
     doc.linesFp = l.lines.length ? l.fp : null;
@@ -166,7 +170,9 @@ async function callScript(body) {
     no_block: "Tab này không có bảng “Người mua · Mô tả · SL · Số tiền · Dư lại · Ngày”.",
     prev_changed: "Các dòng đã ghi lần trước trên sheet đã bị sửa hoặc xoá.",
     no_lines: "Note chưa có món nào.",
+    no_split: "Tab này không có bảng chia tiền (hàng tiêu đề có ô “Ngày” và “Tổng cộng”).",
   };
+  if (j.error === "no_split_col") return { ...j, code: j.error, error: "Bảng chia tiền không có cột cho: " + (j.names || []).join(", ") + ". Thêm cột cho người này trên sheet, hoặc đổi tên cho khớp." };
   if (j.error) return { ...j, code: j.error, error: MSG[j.error] || ("Apps Script báo lỗi: " + (j.message || j.error)) };
   return j;
 }
@@ -251,14 +257,16 @@ module.exports = async (req, res) => {
         if (!it.lines || !it.lines.length) return bad(res, "Note chưa có món nào.");
         const members = await db.collection("members").find({}).toArray();
         const nameOf = (mid) => (members.find((m) => m._id === mid) || {}).name || "";
-        const prev = it.sync && it.sync.sheet === sheet ? { rows: it.sync.rows, descs: it.sync.descs } : null;
+        const prev = it.sync && it.sync.sheet === sheet
+          ? { rows: it.sync.rows, descs: it.sync.descs, split: it.sync.split ? it.sync.split.formula : null } : null;
         const r = await callScript({
-          action: "write", sheet, prev, force: !!b.force,
+          action: "write", sheet, prev, force: !!b.force, date: it.date,
+          participants: it.participants.map(nameOf).filter(Boolean),
           lines: it.lines.map((l) => ({ buyer: nameOf(l.buyer), desc: l.desc, qty: l.qty, amount: l.amount,
-                                         formula: l.formula, left: l.left, date: it.date })),
+                                         formula: l.formula, left: l.left, date: it.date, portion: l.portion || "1" })),
         });
-        if (r.error) return send(res, r.code === "prev_changed" ? 409 : r.code === "no_script" ? 503 : 502, { error: r.error, code: r.code, row: r.row });
-        const sync = { sheet, rows: r.rows, descs: r.descs, fp: it.linesFp, at: now };
+        if (r.error) return send(res, r.code === "prev_changed" ? 409 : r.code === "no_script" ? 503 : r.code === "no_split_col" || r.code === "no_split" ? 422 : 502, { error: r.error, code: r.code, row: r.row });
+        const sync = { sheet, rows: r.rows, descs: r.descs, split: r.split || null, fp: it.linesFp, at: now };
         await c.updateOne({ _id: id }, { $set: { sync } });
         return send(res, 200, { item: out({ ...it, sync }) });
       }

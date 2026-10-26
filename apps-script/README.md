@@ -31,4 +31,14 @@ Phiên bản: Phiên bản mới → Triển khai**. Làm vậy thì URL đượ
 - **Đồng bộ lại** sau khi sửa note: script ghi đè đúng các dòng đã ghi lần trước. Nếu note bớt món,
   các dòng thừa bị xoá trắng.
 - Nếu các dòng đó đã bị sửa tay trên sheet, script dừng lại và app hỏi bạn có muốn ghi thành dòng mới không.
-- Khối chia tiền (cột Tổng cộng, công thức `/4`, `/6`…) vẫn do bạn tự điền trong sheet.
+- **Bảng chia tiền:** mỗi note thêm một dòng vào bảng chia bên phải, xếp theo ngày.
+  - Ngày: ngày của note.
+  - Tổng cộng: công thức cộng các ô Số tiền vừa ghi, ví dụ `=E42+E43/2`. Món chọn
+    "Tính vào chia" ½ thì thành `E43/2`; "Không tính" thì bỏ ra.
+  - Phần từng người: `=$N18/4` theo số người tham gia. Cột ghép như "A.Phú + C.Vân" có
+    cả hai người thì `=$N18/4*2`, một người thì `/4`, không ai thì `0`.
+  - Người mua (nếu bảng có cột này): tên người mua các món.
+  - Dòng mới chỉ đẩy các ô của bảng chia xuống, không đụng khối mua hàng. Nếu chèn
+    ngay trên dòng tổng `=SUM(J4:J17)`, vùng SUM được kéo thêm dòng mới.
+  - Đồng bộ lại: tìm đúng dòng cũ theo công thức Tổng cộng và ghi đè.
+  - Người tham gia không có cột trong bảng chia thì script dừng, không ghi gì.

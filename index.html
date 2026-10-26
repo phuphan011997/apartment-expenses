@@ -793,7 +793,17 @@ function parseSplit(g, startCol, labels){
       buyer: buyerCol >= 0 ? txt(cell(g, rw.row, buyerCol)) : ""
     };
   });
-  return { days: days, people: people.map(function(p){ return p.name; }) };
+  /* một ngày có thể có nhiều dòng (mỗi note một dòng): gộp lại theo ngày */
+  var merged = [], at = {};
+  days.forEach(function(d){
+    var m = at[d.label];
+    if(!m){ at[d.label] = d; merged.push(d); return; }
+    d.shares.forEach(function(s, i){ m.shares[i].value += s.value; });
+    m.total += d.total;
+    if(d.note) m.note = m.note ? m.note + "; " + d.note : d.note;
+    if(d.buyer && (" + " + m.buyer + " + ").indexOf(" + " + d.buyer + " + ") < 0) m.buyer = m.buyer ? m.buyer + " + " + d.buyer : d.buyer;
+  });
+  return { days: merged, people: people.map(function(p){ return p.name; }) };
 }
 
 /* ---------- đọc bảng chi phí nhà (danh mục × người) ---------- */
@@ -1847,14 +1857,16 @@ function blankForm(keep){
   return { id: "", title: "", date: keep ? keep.date : todayISO(),
            participants: keep ? keep.participants : {}, lines: [], note: "" };
 }
-function blankLine(prev){ return { buyer: prev ? prev.buyer : "", desc: "", qty: "", expr: "", left: "" }; }
+function blankLine(prev){ return { buyer: prev ? prev.buyer : "", desc: "", qty: "", expr: "", left: "", portion: "1" }; }
+var PORTIONS = [["1", "Cả món"], ["1/2", "½ món"], ["1/3", "⅓ món"], ["2/3", "⅔ món"], ["1/4", "¼ món"], ["3/4", "¾ món"], ["0", "Không tính"]];
+function portionLabel(p){ for(var i = 0; i < PORTIONS.length; i++){ if(PORTIONS[i][0] === p) return PORTIONS[i][1]; } return "Cả món"; }
 function formFrom(it){
   var p = {}; it.participants.forEach(function(x){ p[x] = 1; });
   var lines = (it.lines || []).map(function(l){
-    return { buyer: l.buyer || "", desc: l.desc || "", qty: l.qty || "", expr: l.amount == null ? "" : String(l.amount), left: l.left || "" };
+    return { buyer: l.buyer || "", desc: l.desc || "", qty: l.qty || "", expr: l.amount == null ? "" : String(l.amount), left: l.left || "", portion: l.portion || "1" };
   });
   /* note cũ chỉ có số tiền + người trả: chuyển thành một món */
-  if(!lines.length && it.amount) lines.push({ buyer: it.payer || "", desc: it.title, qty: "", expr: String(it.amount), left: "" });
+  if(!lines.length && it.amount) lines.push({ buyer: it.payer || "", desc: it.title, qty: "", expr: String(it.amount), left: "", portion: "1" });
   return { id: it.id, title: it.title, date: it.date, participants: p, lines: lines, note: it.note || "" };
 }
 /* Số tiền gõ kiểu sheet: "24000", "35k", "2k5", "6*4000", "185000+195000". Giống parseAmount ở api/index.js */
@@ -1959,7 +1971,7 @@ function saveItem(){
   if(bad){ L.err = bad; L.entry = true; render(); return; }
   var id = f.id || newId("it_"), editing = !!f.id;
   var body = { title: f.title, date: f.date, participants: parts, amount: null, payer: null, note: f.note,
-               lines: f.lines.map(function(l){ return { buyer: l.buyer, desc: l.desc, qty: l.qty, expr: l.expr, left: l.left }; }) };
+               lines: f.lines.map(function(l){ return { buyer: l.buyer, desc: l.desc, qty: l.qty, expr: l.expr, left: l.left, portion: l.portion || "1" }; }) };
   L.saving = true; L.err = ""; render();
   api("PUT", "items/" + id, body).then(function(r){
     L.saving = false;
@@ -2032,8 +2044,9 @@ function runSync(id, force){
     }
     L.items = L.items.map(function(x){ return x.id === id ? r.item : x; });
     L.syncFor = "";
-    var rows = r.item.sync.rows, tab = r.item.sync.sheet;
-    flash("Đã ghi " + rows.length + " món vào tab " + tab + " (dòng " + (rows.length > 1 ? rows[0] + "–" + rows[rows.length - 1] : rows[0]) + ")");
+    var rows = r.item.sync.rows, tab = r.item.sync.sheet, sp = r.item.sync.split;
+    flash("Đã ghi " + rows.length + " món vào tab " + tab + " (dòng " + (rows.length > 1 ? rows[0] + "–" + rows[rows.length - 1] : rows[0]) + ")" +
+      (sp ? " và dòng chia tiền " + sp.row : ""));
     if(state.current === tab) reload();
   }).catch(function(){ L.syncBusy = false; L.syncErr = "Mất kết nối, chưa ghi được."; rerender(); });
 }
@@ -2118,7 +2131,7 @@ function syncBlock(it){
   }
   var tabs = syncTabs();
   if(L.syncTab && tabs.indexOf(L.syncTab) < 0) tabs = tabs.concat([L.syncTab]);
-  return '<div class="spanel"><div class="sl">Ghi ' + it.lines.length + ' món vào tab</div>' +
+  return '<div class="spanel"><div class="sl">Ghi ' + it.lines.length + ' món và dòng chia tiền cho ' + it.participants.length + ' người vào tab</div>' +
     '<select id="lfSyncTab"><option value="">Chọn tab…</option>' + tabs.map(function(t){
       return '<option' + (t === L.syncTab ? " selected" : "") + '>' + esc(t) + '</option>';
     }).join("") + '</select>' +
@@ -2143,6 +2156,7 @@ function noteLines(it){
     var bits = [pdot(memberName(l.buyer)) + esc(memberName(l.buyer))];
     if(l.qty) bits.push(esc(l.qty));
     if(l.left) bits.push("dư " + esc(l.left));
+    if(l.portion && l.portion !== "1") bits.push(l.portion === "0" ? "không tính vào chia" : "chia " + esc(portionLabel(l.portion)));
     return '<div class="nline"><div class="t">' + esc(l.desc) + '<small>' + bits.map(function(b){ return "<span>" + b + "</span>"; }).join("") + '</small></div>' +
       '<span class="v">' + (l.amount == null ? "—" : esc(vnd(l.amount))) + '</span></div>';
   }).join("") + '</div>';
@@ -2237,7 +2251,12 @@ function viewEntry(f){
         '<div class="ef"><label for="ln' + i + 'a">Số tiền</label><input type="text" id="ln' + i + 'a" data-li="' + i + '" data-lf="expr" inputmode="numeric" pattern="[0-9]*" maxlength="12" placeholder="24000" value="' + esc(l.expr) + '">' +
           '<span class="calc" id="ln' + i + 'c">' + esc(p.amount ? vnd(p.amount) : "") + '</span></div>' +
       '</div>' +
-      '<div class="ef"><label for="ln' + i + 'l">Dư lại</label><input type="text" id="ln' + i + 'l" data-li="' + i + '" data-lf="left" maxlength="40" placeholder="Không có thì để trống" value="' + esc(l.left) + '"></div>' +
+      '<div class="egrid">' +
+        '<div class="ef"><label for="ln' + i + 'l">Dư lại</label><input type="text" id="ln' + i + 'l" data-li="' + i + '" data-lf="left" maxlength="40" placeholder="Để trống nếu hết" value="' + esc(l.left) + '"></div>' +
+        '<div class="ef"><label for="ln' + i + 'p">Tính vào chia</label><select id="ln' + i + 'p" data-li="' + i + '" data-lf="portion">' +
+          PORTIONS.map(function(o){ return '<option value="' + o[0] + '"' + ((l.portion || "1") === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") +
+        '</select></div>' +
+      '</div>' +
     '</div>';
   }).join("");
   return '<div class="entry" role="dialog" aria-modal="true" aria-label="Nhập chi tiêu">' +
