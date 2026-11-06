@@ -2153,6 +2153,8 @@ function runSync(id, force){
       rerender(); return;
     }
     L.items = L.items.map(function(x){ return x.id === id ? r.item : x; });
+    /* chèn dòng giữa sheet làm dời dòng của note khác: tải lại danh sách để có số dòng mới */
+    api("GET", "items").then(function(q){ if(q.__status === 200 && q.items){ L.items = q.items; if(state.tab === "items") rerender(); } }).catch(function(){});
     L.syncFor = "";
     var rows = r.item.sync.rows, tab = r.item.sync.sheet, sp = r.item.sync.split;
     flash("Đã ghi " + rows.length + " món vào tab " + tab + " (dòng " + (rows.length > 1 ? rows[0] + "–" + rows[rows.length - 1] : rows[0]) + ")" +

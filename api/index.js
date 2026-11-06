@@ -27,6 +27,7 @@
 
 const { MongoClient } = require("mongodb");
 const crypto = require("crypto");
+const { shiftSync } = require("../lib/shift");
 
 const DB_NAME = process.env.MONGODB_DB || "apartment_expenses";
 
@@ -363,6 +364,14 @@ module.exports = async (req, res) => {
         if (r.error) return send(res, r.code === "prev_changed" || r.code === "src_changed" ? 409 : r.code === "no_script" ? 503 : r.code === "no_split_col" || r.code === "no_split" ? 422 : 502, { error: r.error, code: r.code, row: r.row });
         const sync = { sheet, rows: r.rows, descs: r.descs, split: r.split || null, fp: it.linesFp, at: now };
         await c.updateOne({ _id: id }, { $set: { sync } });
+        /* dòng bị chèn/xoá trên sheet: sửa số dòng và công thức đã lưu của các note khác */
+        if (r.shifts && r.shifts.length) {
+          const others = await c.find({ _id: { $ne: id }, sync: { $exists: true } }).toArray();
+          for (const x of others) {
+            const ns = shiftSync(x.sync, sheet, r.shifts);
+            if (ns) await c.updateOne({ _id: x._id }, { $set: { sync: ns } });
+          }
+        }
         return send(res, 200, { item: out({ ...it, sync }) });
       }
       if (method === "DELETE" && id) {

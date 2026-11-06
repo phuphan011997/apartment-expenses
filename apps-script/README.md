@@ -24,12 +24,16 @@ Phiên bản: Phiên bản mới → Triển khai**. Làm vậy thì URL đượ
 
 ## Script ghi thế nào
 
-- Tìm hàng tiêu đề "Người mua" rồi ghi vào dòng ngay sau dòng cuối cùng đang có dữ liệu.
+- Tìm hàng tiêu đề "Người mua", rồi chèn các món **theo thứ tự ngày**: ngay sau dòng cuối
+  cùng có ngày nhỏ hơn hoặc bằng ngày của note. Note ngày mới nhất thì ghi tiếp xuống cuối.
+  Khi chèn giữa bảng, chỉ các ô của khối mua hàng (Người mua … cột H) bị đẩy xuống; bảng
+  chia tiền bên phải đứng yên, Google tự sửa các công thức trỏ tới ô bị dời. Máy chủ cũng
+  sửa số dòng đã lưu của các note khác để lần đồng bộ sau vẫn đúng chỗ.
 - Tên người mua được đổi theo danh sách chọn của cột Người mua trong sheet. Ví dụ "Tân" thành "Anh Tân".
 - Số tiền dạng `6*4000` được ghi thành công thức `=6*4000`.
 - Ngày lấy theo ngày của note.
-- **Đồng bộ lại** sau khi sửa note: script ghi đè đúng các dòng đã ghi lần trước. Nếu note bớt món,
-  các dòng thừa bị xoá trắng.
+- **Đồng bộ lại** sau khi sửa note: script ghi đè đúng các dòng đã ghi lần trước. Thêm món thì
+  chèn ngay sau dòng cuối của note; bớt món thì xoá hẳn dòng thừa (dòng bên dưới dời lên).
 - Nếu các dòng đó đã bị sửa tay trên sheet, script dừng lại và app hỏi bạn có muốn ghi thành dòng mới không.
 - **Bảng chia tiền:** mỗi note thêm một dòng vào bảng chia bên phải, xếp theo ngày.
   - Ngày: ngày của note.
