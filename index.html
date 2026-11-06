@@ -382,6 +382,13 @@ body.lock{overflow:hidden}
 .egrid > *{min-width:0}
 .ef label{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin:0 0 4px}
 .ef .calc{display:block;font-size:11.5px;color:var(--muted);font-family:var(--font-num);margin-top:3px;min-height:1em}
+.addnote{width:100%;padding:13px;font-size:15px}
+.entry.nform{z-index:55}
+.nform .ebody .wrap{gap:10px}
+.nform .quick{margin:0}
+.nform .flabel{margin:4px 0 0}
+.nform .exbox{margin-top:0}
+.nform .efoot .sum span{font-size:13px;color:var(--muted)}
 .eadds{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
 .eline.use{border-style:dashed}
 .eline .utag{flex:1;font-size:12px;font-weight:700;color:var(--b-edit)}
@@ -1868,7 +1875,7 @@ var L = {
   form: null, saving: false, err: "",
   delArm: "", flash: "", who: "all",
   memberMsg: "", busy: false,
-  sheetSync: false, entry: false, openLines: {}, usePick: false,
+  sheetSync: false, entry: false, formOpen: false, openLines: {}, usePick: false,
   syncFor: "", syncTab: "", tabs: null, syncBusy: false, syncErr: "", syncConflict: false
 };
 function tokenGet(){ try{ return localStorage.getItem(TK) || ""; }catch(e){ return ""; } }
@@ -2032,6 +2039,7 @@ function saveItem(){
     L.day = r.item.date; L.month = r.item.date.slice(0, 7);
     /* thêm mới thì giữ ngày và người tham gia cho lần nhập kế tiếp */
     L.form = editing ? blankForm() : blankForm(L.form);
+    L.formOpen = false;
     flash((editing ? "Đã sửa " : "Đã lưu ") + "“" + r.item.title + "”", true);
   }).catch(function(){ L.saving = false; L.err = "Mất kết nối, chưa lưu được."; rerender(); });
 }
@@ -2420,6 +2428,32 @@ function viewEntry(f){
       '<button class="btn b-save" data-act="closeEntry">Xong</button></div></div></div>';
 }
 
+function viewForm(f, editing){
+  var d = isoDate(f.date);
+  return '<div class="entry nform" role="dialog" aria-modal="true" aria-label="' + (editing ? "Sửa note" : "Note mới") + '">' +
+    '<div class="ehead"><div class="wrap"><button class="iconbtn" data-act="closeForm" aria-label="Quay lại"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"></path></svg></button>' +
+      '<div class="tt"><h1>' + (editing ? "Sửa note" : "Note mới") + '</h1>' + (editing ? '<small>' + esc(f.title) + (d ? " · " + esc(dshort(d)) : "") + '</small>' : "") + '</div></div></div>' +
+    '<div class="ebody"><div class="wrap">' +
+      '<div class="quick">' + ["Ăn sáng", "Ăn trưa", "Ăn tối", "Đi chợ", "Cà phê"].map(function(q){
+        return '<button class="chip" data-act="quick" data-v="' + q + '">' + q + '</button>';
+      }).join("") + '</div>' +
+      '<input type="text" id="lfTitle" maxlength="80" placeholder="Nội dung, ví dụ Ăn trưa" value="' + esc(f.title) + '">' +
+      '<input type="date" id="lfDate" aria-label="Ngày" value="' + esc(f.date) + '">' +
+      '<div class="flabel"><span>Người tham gia · ' + Object.keys(f.participants).filter(function(k){ return f.participants[k]; }).length + '</span><span style="display:flex;gap:12px">' +
+        '<button class="lnk" data-act="all">Chọn hết</button><button class="lnk" data-act="none">Bỏ hết</button></span></div>' +
+      '<div class="picks">' + L.members.map(function(m){
+        return '<button class="pill" data-act="toggle" data-id="' + esc(m.id) + '" aria-pressed="' + (!!f.participants[m.id]) + '">' + pdot(m.name) + esc(m.name) + '</button>';
+      }).join("") + '</div>' +
+      exBox(f) +
+      '<input type="text" id="lfNote" maxlength="300" placeholder="Ghi chú (tuỳ chọn)" value="' + esc(f.note) + '">' +
+      (L.err && !L.entry ? '<div class="ferr">' + esc(L.err) + '</div>' : "") +
+    '</div></div>' +
+    '<div class="efoot"><div class="wrap"><div class="sum"><span id="lfHint">' + esc(formHint()) + '</span></div>' +
+      '<div class="btnrow" style="flex:none">' + (editing ? '<button class="btn" data-act="cancel">Huỷ</button>' : "") +
+      '<button class="btn b-save" data-act="save"' + (L.saving ? " disabled" : "") + '>' +
+      (L.saving ? "Đang lưu…" : editing ? "Lưu thay đổi" : "Lưu note") + '</button></div></div></div></div>';
+}
+
 function viewItems(){
   if(L.status === "idle" || L.status === "loading"){
     return '<div class="card"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:110px;margin-top:12px"></div></div>' +
@@ -2459,27 +2493,13 @@ function viewItems(){
     return h + '</div>';
   }
 
-  /* form thêm / sửa */
+  /* form thêm / sửa: mở thành màn hình riêng khi bấm Thêm note hoặc Sửa */
   var f = L.form || (L.form = blankForm());
   var editing = !!f.id;
-  h += '<div class="card"><div class="ttl"><h2>' + (editing ? "Sửa note" : "Thêm note") + '</h2>' +
-    (editing ? '<button class="lnk" data-act="cancel">Huỷ sửa</button>' : "") + '</div>' +
-    '<div class="quick">' + ["Ăn sáng", "Ăn trưa", "Ăn tối", "Đi chợ", "Cà phê"].map(function(q){
-      return '<button class="chip" data-act="quick" data-v="' + q + '">' + q + '</button>';
-    }).join("") + '</div>' +
-    '<input type="text" id="lfTitle" maxlength="80" placeholder="Nội dung, ví dụ Ăn trưa" value="' + esc(f.title) + '">' +
-    '<input type="date" id="lfDate" aria-label="Ngày" value="' + esc(f.date) + '" style="margin-top:8px">' +
-    '<div class="flabel"><span>Người tham gia · ' + Object.keys(f.participants).filter(function(k){ return f.participants[k]; }).length + '</span><span style="display:flex;gap:12px">' +
-      '<button class="lnk" data-act="all">Chọn hết</button><button class="lnk" data-act="none">Bỏ hết</button></span></div>' +
-    '<div class="picks">' + L.members.map(function(m){
-      return '<button class="pill" data-act="toggle" data-id="' + esc(m.id) + '" aria-pressed="' + (!!f.participants[m.id]) + '">' + pdot(m.name) + esc(m.name) + '</button>';
-    }).join("") + '</div>' +
-    exBox(f) +
-    '<input type="text" id="lfNote" maxlength="300" placeholder="Ghi chú (tuỳ chọn)" value="' + esc(f.note) + '" style="margin-top:8px">' +
-    '<div class="hintline" id="lfHint">' + esc(formHint()) + '</div>' +
-    (L.err ? '<div class="ferr">' + esc(L.err) + '</div>' : "") +
-    '<div class="btnrow" style="margin-top:12px"><button class="btn b-save" data-act="save"' + (L.saving ? " disabled" : "") + '>' +
-      (L.saving ? "Đang lưu…" : editing ? "Lưu thay đổi" : "Lưu note") + '</button></div></div>';
+  var draft = !editing && (f.title || f.lines.some(function(l){ return !lineEmpty(l); }));
+  h += '<button class="btn b-save addnote" data-act="openForm">' + (draft ? "Tiếp tục note đang nhập" : "+ Thêm note") + '</button>';
+  if(L.err && !L.formOpen) h += '<div class="ferr" style="margin-top:0">' + esc(L.err) + '</div>';
+  if(L.formOpen) h += viewForm(f, editing);
   if(L.entry) h += viewEntry(f);
 
   /* lọc theo người */
@@ -2561,10 +2581,16 @@ function wireItems(){
     if(act === "all"){ L.members.forEach(function(m){ L.form.participants[m.id] = true; }); return render(); }
     if(act === "none"){ L.form.participants = {}; return render(); }
     if(act === "save") return saveItem();
-    if(act === "cancel"){ L.form = blankForm(); L.err = ""; L.entry = false; return render(); }
+    if(act === "cancel"){ L.form = blankForm(); L.err = ""; L.entry = false; L.formOpen = false; return render(); }
+    if(act === "openForm"){ L.formOpen = true; L.err = ""; return render(); }
+    if(act === "closeForm"){
+      /* note mới: giữ bản nháp để mở lại; đang sửa thì bỏ */
+      if(L.form && L.form.id) L.form = blankForm();
+      L.formOpen = false; L.entry = false; L.err = ""; return render();
+    }
     if(act === "edit"){
       var it = L.items.filter(function(x){ return x.id === id; })[0];
-      if(it){ L.form = formFrom(it); L.err = ""; render(); window.scrollTo(0, 0); }
+      if(it){ L.form = formFrom(it); L.err = ""; L.formOpen = true; render(); }
       return;
     }
     if(act === "del") return deleteItem(id);
@@ -2670,7 +2696,7 @@ function render(){
     if(el){ el.scrollLeft = keep[id].l; el.scrollTop = keep[id].t; }
   });
   if(Math.abs(window.scrollY - winY) > 1) window.scrollTo(0, winY);
-  document.body.classList.toggle("lock", state.tab === "items" && !!L.entry && L.status === "ready");
+  document.body.classList.toggle("lock", state.tab === "items" && !!(L.entry || L.formOpen) && L.status === "ready");
   wire();
 }
 

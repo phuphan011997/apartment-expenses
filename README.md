@@ -97,7 +97,7 @@ Thanh menu dưới cùng:
   người đó có phần chia hôm đó; bấm một ngày để xem ai tham gia, các món đã mua và
   dòng CK. Đầu tab có thẻ **Kiểm tra sheet** báo sheet chia đủ hay lệch, lệch ở đâu.
 - **Thống kê** — tỉ lệ theo người, khoản lớn nhất, đồ còn dư trong bếp
-- **Note** — ghi chú chi tiêu (ví dụ "Ăn trưa 18/10"), chọn người tham gia. Nút
+- **Note** — bấm **+ Thêm note** để mở màn hình nhập: ghi chú chi tiêu (ví dụ "Ăn trưa 18/10"), chọn người tham gia. Nút
   **Nhập chi tiêu** mở màn hình nhập từng món giống sheet: Người mua, Mô tả, SL, Số tiền
   (chỉ nhận số), Dư lại, Tính vào chia (cả món, ½, ⅓…, không tính). Lưu note là lưu luôn các món. Note có món thì có nút
   **Đồng bộ** để ghi lên tab tuần (các món và một dòng trong bảng chia tiền); app tự chọn tab theo ngày. Nút **↳ Dùng đồ dư** trong màn hình nhập lấy
