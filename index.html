@@ -405,6 +405,14 @@ body.lock{overflow:hidden}
 .nform .flabel{margin:4px 0 0}
 .nform .exbox{margin-top:0}
 .nform .efoot .sum span{font-size:13px;color:var(--muted)}
+.kbar{position:fixed;left:0;right:0;z-index:80;display:flex;gap:8px;justify-content:flex-end;padding:6px max(10px,env(safe-area-inset-right,0px)) 6px 10px;background:var(--surface-2);border-top:1px solid var(--line)}
+.kbar[hidden]{display:none}
+.kbar button{min-width:64px;height:38px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-family:var(--font-num);font-size:17px;font-weight:700;cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.kbar button:active{transform:scale(.96)}
+.kbar .done{margin-left:auto;order:-1;font-family:var(--font-ui);font-size:15px;color:var(--accent-ink);background:none;border:0;min-width:0}
+:root[data-skin="clay"] .kbar{background:var(--surface);border-top:2px solid var(--clay-line)}
+:root[data-skin="clay"] .kbar button{border-width:2px;border-radius:13px;box-shadow:0 3px 0 var(--clay-shadow)}
+:root[data-skin="clay"] .kbar .done{box-shadow:none}
 .eadds{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
 .eline.use{border-style:dashed}
 .eline .utag{flex:1;font-size:12px;font-weight:700;color:var(--b-edit)}
@@ -2660,6 +2668,61 @@ window.addEventListener("popstate", function(){
   if(hist.ignore){ hist.ignore--; return; }
   if(hist.pushed > 0){ hist.pushed--; closeTopOverlay(); }
 });
+
+/* Thanh phím nhanh nằm ngay trên bàn phím khi gõ Số tiền: 000, 00, Xong.
+   Trang web không thêm phím vào bàn phím của máy được, nên thanh này bám theo mép trên bàn phím. */
+(function(){
+  var bar = null, target = null;
+  function place(){
+    if(!bar) return;
+    var vv = window.visualViewport;
+    var bottom = vv ? vv.offsetTop + vv.height : window.innerHeight;
+    /* không có bàn phím ảo (máy tính, hoặc bàn phím chưa bật): đặt ngay trên chân màn hình nhập, không che nút Xong */
+    var kb = vv && vv.height < window.innerHeight * 0.85;
+    var foot = document.querySelector(".entry:not(.nform) .efoot");
+    if(!kb && foot) bottom = Math.min(bottom, foot.getBoundingClientRect().top);
+    bar.style.top = Math.round(bottom - bar.offsetHeight) + "px";
+  }
+  function insert(txt){
+    if(!target) return;
+    var v = target.value, a = target.selectionStart, z = target.selectionEnd;
+    if(a == null){ a = z = v.length; }
+    if(!v.slice(0, a)) return; /* không gõ 000 khi chưa có số đầu */
+    target.value = v.slice(0, a) + txt + v.slice(z);
+    var pos = a + txt.length;
+    try{ target.setSelectionRange(pos, pos); }catch(e){}
+    target.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  function act(k){
+    if(k === "done"){ if(target) target.blur(); return; }
+    insert(k);
+  }
+  function show(el){
+    target = el;
+    if(!bar){
+      bar = document.createElement("div");
+      bar.className = "kbar";
+      bar.innerHTML = '<button type="button" data-k="000">000</button><button type="button" data-k="00">00</button><button type="button" class="done" data-k="done">Xong</button>';
+      /* giữ ô đang gõ không mất focus khi bấm phím nhanh, để bàn phím không bị đóng */
+      bar.addEventListener("touchstart", function(e){ var b = e.target.closest("button"); if(!b) return; e.preventDefault(); act(b.dataset.k); }, { passive: false });
+      bar.addEventListener("mousedown", function(e){ var b = e.target.closest("button"); if(!b) return; e.preventDefault(); act(b.dataset.k); });
+      document.body.appendChild(bar);
+    }
+    bar.hidden = false; place();
+  }
+  function hide(){ if(bar) bar.hidden = true; target = null; }
+  document.addEventListener("focusin", function(e){
+    if(e.target.matches && e.target.matches('input[data-lf="expr"]')) show(e.target); else hide();
+  });
+  document.addEventListener("focusout", function(e){
+    if(e.target === target) setTimeout(function(){ if(!document.activeElement || !document.activeElement.matches('input[data-lf="expr"]')) hide(); }, 0);
+  });
+  if(window.visualViewport){
+    window.visualViewport.addEventListener("resize", place);
+    window.visualViewport.addEventListener("scroll", place);
+  }
+  window.addEventListener("resize", place);
+})();
 
 /* Vuốt sang phải để quay lại (cho app mở từ màn hình chính, nơi không có cử chỉ của trình duyệt) */
 (function(){
