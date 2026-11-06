@@ -397,6 +397,10 @@ body.lock{overflow:hidden}
 .ef label{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin:0 0 4px}
 .ef .calc{display:block;font-size:11.5px;color:var(--muted);font-family:var(--font-num);margin-top:3px;min-height:1em}
 .addnote{width:100%;padding:13px;font-size:15px}
+.btn.more{width:100%;margin-top:4px}
+.refreshing{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:-4px 0 0}
+.refreshing:before{content:"";width:10px;height:10px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .entry.nform{z-index:55}
 .entry{transition:transform .18s ease-out;will-change:transform}
 .entry.dragging{transition:none;box-shadow:-8px 0 24px rgba(0,0,0,.18)}
@@ -2076,6 +2080,7 @@ var L = {
   delArm: "", flash: "", who: "all",
   memberMsg: "", busy: false,
   sheetSync: false, entry: false, formOpen: false, openLines: {}, usePick: false,
+  refreshing: false, hasMore: false, loadingMore: false, showN: 40,
   syncFor: "", syncTab: "", tabs: null, syncBusy: false, syncErr: "", syncConflict: false
 };
 function tokenGet(){ try{ return localStorage.getItem(TK) || ""; }catch(e){ return ""; } }
@@ -2187,31 +2192,77 @@ function sortItems(){
   });
 }
 
+/* Tab Note tải nhanh:
+   - một lần gọi /api/bootstrap lấy đủ trạng thái + người + 200 note mới nhất (trước đây 2 lượt nối tiếp)
+   - bản lưu trên máy hiện ngay lập tức, rồi cập nhật ngầm khi có dữ liệu mới
+   - tải sẵn khi mở app, không đợi bấm vào tab Note */
+var NOTES_CACHE = "ctn:notes";
+function notesCacheLoad(){
+  try{
+    var o = JSON.parse(localStorage.getItem(NOTES_CACHE) || "null");
+    if(o && Array.isArray(o.members) && Array.isArray(o.items)) return o;
+  }catch(e){}
+  return null;
+}
+var cacheTimer = null;
+function notesCacheSave(){
+  clearTimeout(cacheTimer);
+  cacheTimer = setTimeout(function(){
+    if(L.status !== "ready") return;
+    try{
+      localStorage.setItem(NOTES_CACHE, JSON.stringify({ members: L.members, items: L.items, hasMore: L.hasMore, sheetSync: L.sheetSync, at: Date.now() }));
+    }catch(e){}
+  }, 400);
+}
 function ledgerLoad(){
-  L.status = "loading"; L.msg = "";
+  var c = L.status !== "ready" && notesCacheLoad();
+  if(c){
+    L.members = c.members; L.items = c.items; L.hasMore = !!c.hasMore; L.sheetSync = !!c.sheetSync;
+    sortItems();
+    if(!L.form) L.form = blankForm();
+    L.status = "ready";
+  }else if(L.status !== "ready"){
+    L.status = "loading"; L.msg = "";
+  }
+  L.refreshing = true;
   if(state.tab === "items") rerender();
-  api("GET", "health").then(function(h){
-    if(h.db === "no_uri"){ L.status = "no_db"; return; }
-    if(h.db !== "ok"){ L.status = "error"; L.msg = "Không kết nối được database. Thử lại sau ít phút."; return; }
-    L.sheetSync = !!h.sheetSync;
-    if(h.needsToken && !tokenGet()){ L.status = "need_token"; return; }
-    return Promise.all([api("GET", "members"), api("GET", "items")]).then(function(r){
-      if(r[0].__status === 401 || r[1].__status === 401){
-        tokenSet(""); L.status = "need_token"; L.msg = "Mã truy cập không đúng, nhập lại."; return;
-      }
-      if(r[0].__status !== 200 || r[1].__status !== 200){
-        L.status = "error"; L.msg = r[0].error || r[1].error || "Không tải được dữ liệu."; return;
-      }
-      L.members = r[0].members || [];
-      L.items = r[1].items || [];
-      sortItems();
-      if(!L.form) L.form = blankForm();
-      L.status = "ready";
-    });
+  api("GET", "bootstrap").then(function(b){
+    if(b.db === "no_uri"){ L.status = "no_db"; return; }
+    if(b.__status === 401){ tokenSet(""); L.status = "need_token"; L.msg = tokenGet() ? "Mã truy cập không đúng, nhập lại." : ""; return; }
+    if(b.db !== "ok" || b.__status !== 200){
+      if(L.status === "ready") return; /* đang có bản lưu: giữ nguyên, lần sau thử lại */
+      L.status = "error"; L.msg = b.error || "Không kết nối được database. Thử lại sau ít phút."; return;
+    }
+    L.sheetSync = !!b.sheetSync;
+    L.members = b.members || [];
+    L.items = b.items || [];
+    L.hasMore = !!b.hasMore;
+    sortItems();
+    if(!L.form) L.form = blankForm();
+    L.status = "ready"; L.loadedAt = Date.now();
+    notesCacheSave();
   }).catch(function(e){
+    if(L.status === "ready") return;
     L.status = e && e.code === "no_api" ? "no_api" : "error";
     if(L.status === "error") L.msg = "Không tải được dữ liệu.";
-  }).then(function(){ if(state.tab === "items") rerender(); });
+  }).then(function(){ L.refreshing = false; if(state.tab === "items") rerender(); });
+}
+function notesStale(){
+  if(L.refreshing) return false;
+  if(L.status === "idle" || L.status === "error" || L.status === "no_db") return true;
+  return L.status === "ready" && Date.now() - (L.loadedAt || 0) > 60000;
+}
+function loadMoreItems(){
+  if(L.loadingMore) return;
+  L.loadingMore = true; rerender();
+  api("GET", "items?skip=" + L.items.length).then(function(r){
+    if(r.__status === 200){
+      var have = {};
+      L.items.forEach(function(x){ have[x.id] = 1; });
+      L.items = L.items.concat((r.items || []).filter(function(x){ return !have[x.id]; }));
+      L.hasMore = !!r.hasMore; sortItems(); notesCacheSave();
+    }
+  }).catch(function(){}).then(function(){ L.loadingMore = false; rerender(); });
 }
 
 function saveItem(){
@@ -2838,6 +2889,7 @@ function viewItems(){
   var f = L.form || (L.form = blankForm());
   var editing = !!f.id;
   var draft = !editing && (f.title || f.lines.some(function(l){ return !lineEmpty(l); }));
+  if(L.refreshing) h += '<div class="refreshing">Đang cập nhật…</div>';
   h += '<button class="btn b-save addnote" data-act="openForm">' + (draft ? "Tiếp tục note đang nhập" : "+ Thêm note") + '</button>';
   if(L.err && !L.formOpen) h += '<div class="ferr" style="margin-top:0">' + esc(L.err) + '</div>';
   if(L.formOpen) h += viewForm(f, editing);
@@ -2867,7 +2919,14 @@ function viewItems(){
 
   if(state.noteView === "cal") h += noteCalendar(list);
   else if(!list.length) h += '<div class="empty">' + (L.items.length ? "Người này chưa có note nào." : "Chưa có note nào.") + '</div>';
-  else h += noteDays(list);
+  else{
+    /* nhiều note thì chỉ vẽ 40 note mới nhất, bấm để xem thêm */
+    h += noteDays(list.slice(0, L.showN));
+    if(list.length > L.showN) h += '<button class="btn more" data-act="showMore">Xem thêm ' + Math.min(40, list.length - L.showN) + ' note</button>';
+  }
+  if(L.hasMore && state.noteView !== "cal" && list.length <= L.showN){
+    h += '<button class="btn more" data-act="loadMore"' + (L.loadingMore ? " disabled" : "") + '>' + (L.loadingMore ? "Đang tải…" : "Tải note cũ hơn") + '</button>';
+  }
 
   /* quản lý người */
   h += '<div class="card"><div class="ttl"><h2>Người trong nhà</h2><em>' + L.members.length + ' người</em></div><div class="rows">' +
@@ -2923,6 +2982,8 @@ function wireItems(){
     if(act === "none"){ L.form.participants = {}; return render(); }
     if(act === "save") return saveItem();
     if(act === "cancel"){ L.form = blankForm(); L.err = ""; L.entry = false; L.formOpen = false; return render(); }
+    if(act === "showMore"){ L.showN += 40; return render(); }
+    if(act === "loadMore") return loadMoreItems();
     if(act === "openForm"){ L.formOpen = true; L.err = ""; return render(); }
     if(act === "closeForm"){ closeFormUI(); return render(); }
     if(act === "edit"){
@@ -3030,6 +3091,7 @@ function render(){
   if(Math.abs(window.scrollY - winY) > 1) window.scrollTo(0, winY);
   document.body.classList.toggle("lock", state.tab === "items" && !!(L.entry || L.formOpen) && L.status === "ready");
   syncHistory();
+  if(L.status === "ready") notesCacheSave();
   wire();
 }
 
@@ -3120,7 +3182,7 @@ Array.prototype.forEach.call(document.querySelectorAll(".tab"), function(t){
     state.tab = t.dataset.tab;
     if(state.tab !== "sheets") state.msg = "";
     window.scrollTo(0, 0); render();
-    if(state.tab === "items" && (L.status === "idle" || L.status === "error" || L.status === "no_db")) ledgerLoad();
+    if(state.tab === "items" && notesStale()) ledgerLoad();
   });
 });
 document.getElementById("btnReload").addEventListener("click", function(){
@@ -3138,7 +3200,7 @@ function leaveAdvanced(to){
   state.tab = to || state.prevTab || "overview";
   state.msg = "";
   window.scrollTo(0, 0); render();
-  if(state.tab === "items" && (L.status === "idle" || L.status === "error" || L.status === "no_db")) ledgerLoad();
+  if(state.tab === "items" && notesStale()) ledgerLoad();
 }
 document.getElementById("btnAdv").addEventListener("click", openAdvanced);
 document.getElementById("brandBtn").addEventListener("click", openAdvanced);
@@ -3230,6 +3292,8 @@ if(state.sheets.indexOf(state.current) < 0) state.current = state.sheets[0];
 render();
 reload();
 discoverTabs();
+/* tải sẵn note ngay khi mở app, để bấm vào tab Note là có liền */
+ledgerLoad();
 })();
 </script>
 

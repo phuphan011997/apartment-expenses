@@ -49,7 +49,32 @@ async function getDb() {
       .catch((e) => { cached.promise = null; throw e; });
   }
   cached.client = await cached.promise;
-  return cached.client.db(DB_NAME);
+  const db = cached.client.db(DB_NAME);
+  /* chỉ mục: một lần cho mỗi lần khởi động; tạo rồi thì Mongo bỏ qua */
+  if (!cached.indexed) {
+    cached.indexed = true;
+    const it = db.collection("items");
+    Promise.all([
+      it.createIndex({ date: -1, createdAt: -1 }),
+      it.createIndex({ "lines.src.item": 1 }),
+    ]).catch(() => { cached.indexed = false; });
+  }
+  return db;
+}
+
+const PAGE = 200;
+/* một trang note mới nhất; note cũ chưa có mã món thì gán mã (để dùng tiếp đồ dư) */
+async function itemsPage(c, skip, limit) {
+  const list = await c.find({}).sort({ date: -1, createdAt: -1 }).skip(skip).limit(limit + 1).toArray();
+  const hasMore = list.length > limit;
+  if (hasMore) list.pop();
+  for (const it of list) {
+    if ((it.lines || []).some((l) => !l.id)) {
+      it.lines = it.lines.map((l) => (l.id ? l : { ...l, id: newLineId() }));
+      await c.updateOne({ _id: it._id }, { $set: { lines: it.lines } });
+    }
+  }
+  return { items: list.map(out), hasMore };
 }
 
 function readBody(req) {
@@ -262,6 +287,24 @@ module.exports = async (req, res) => {
   }
 
   const token = process.env.APP_TOKEN;
+  const sheetSync = !!(process.env.SHEET_SCRIPT_URL && process.env.SHEET_SCRIPT_SECRET);
+
+  /* Mở tab Note: một lần gọi lấy đủ trạng thái, danh sách người và trang note đầu tiên */
+  if (coll === "bootstrap" && method === "GET") {
+    if (!mongoUri()) return send(res, 200, { db: "no_uri" });
+    if (token && req.headers["x-app-token"] !== token) return send(res, 401, { error: "Sai hoặc thiếu mã truy cập.", needsToken: true });
+    try {
+      const db = await getDb();
+      const [members, page] = await Promise.all([
+        db.collection("members").find({}).sort({ order: 1, createdAt: 1 }).toArray(),
+        itemsPage(db.collection("items"), 0, PAGE),
+      ]);
+      return send(res, 200, { db: "ok", needsToken: !!token, sheetSync, members: members.map(out), items: page.items, hasMore: page.hasMore });
+    } catch (e) {
+      return send(res, 200, { db: "error" });
+    }
+  }
+
   if (token && req.headers["x-app-token"] !== token) {
     return send(res, 401, { error: "Sai hoặc thiếu mã truy cập." });
   }
@@ -308,20 +351,18 @@ module.exports = async (req, res) => {
     if (coll === "items") {
       const c = db.collection("items");
       if (method === "GET" && !id) {
-        const list = await c.find({}).sort({ date: -1, createdAt: -1 }).limit(500).toArray();
-        /* note cũ: món chưa có mã thì gán mã để dùng tiếp đồ dư được */
-        for (const it of list) {
-          if ((it.lines || []).some((l) => !l.id)) {
-            it.lines = it.lines.map((l) => (l.id ? l : { ...l, id: newLineId() }));
-            await c.updateOne({ _id: it._id }, { $set: { lines: it.lines } });
-          }
-        }
-        return send(res, 200, { items: list.map(out) });
+        const q = req.query || {};
+        const skip = Math.max(0, Math.min(100000, parseInt(q.skip, 10) || 0));
+        const limit = Math.max(1, Math.min(PAGE, parseInt(q.limit, 10) || PAGE));
+        return send(res, 200, await itemsPage(c, skip, limit));
       }
       if (method === "PUT" && id) {
         const r = checkItem(readBody(req));
         if (r.error) return bad(res, r.error);
-        const all = await c.find({}).toArray();
+        /* chỉ cần các note liên quan tới đồ dư: note này, note gốc nó dùng, và note khác dùng chung món gốc */
+        const srcIds = [...new Set(r.doc.lines.filter((l) => l.kind === "use").map((l) => l.src.item))];
+        const keys = srcIds.concat([id]);
+        const all = await c.find({ $or: [{ _id: { $in: keys } }, { "lines.src.item": { $in: keys } }] }).toArray();
         const next = all.filter((x) => x._id !== id).concat([{ _id: id, ...r.doc }]);
         const usageErr = checkUsage(next, id);
         if (usageErr) return send(res, 409, { error: usageErr });

@@ -37,10 +37,11 @@ gọi API phải kèm mã này. Mỗi máy nhập mã một lần, app tự nh�
 | Đường dẫn | Việc |
 | --- | --- |
 | `GET /api/health` | kiểm tra kết nối database, có cần mã không |
+| `GET /api/bootstrap` | một lần gọi lấy trạng thái, danh sách người và 200 note mới nhất (`hasMore`) |
+| `GET /api/items?skip=&limit=` | trang note tiếp theo (tối đa 200 mỗi trang) |
 | `GET /api/members` | danh sách người |
 | `PUT /api/members/:id` | thêm hoặc sửa một người `{ name, order }` |
 | `DELETE /api/members/:id` | xoá người; bị chặn nếu người đó còn trong note |
-| `GET /api/items` | danh sách note, mới nhất trước |
 | `PUT /api/items/:id` | thêm hoặc sửa `{ title, date: "YYYY-MM-DD", participants: [id], lines?: [{ buyer, desc, qty, expr, left }], note? }` |
 | `DELETE /api/items/:id` | xoá note |
 | `POST /api/items/:id/sync` | ghi các món của note lên tab `{ sheet, force? }` |
