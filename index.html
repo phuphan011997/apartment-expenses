@@ -384,6 +384,8 @@ body.lock{overflow:hidden}
 .ef .calc{display:block;font-size:11.5px;color:var(--muted);font-family:var(--font-num);margin-top:3px;min-height:1em}
 .addnote{width:100%;padding:13px;font-size:15px}
 .entry.nform{z-index:55}
+.entry{transition:transform .18s ease-out;will-change:transform}
+.entry.dragging{transition:none;box-shadow:-8px 0 24px rgba(0,0,0,.18)}
 .nform .ebody .wrap{gap:10px}
 .nform .quick{margin:0}
 .nform .flabel{margin:4px 0 0}
@@ -2428,6 +2430,92 @@ function viewEntry(f){
       '<button class="btn b-save" data-act="closeEntry">Xong</button></div></div></div>';
 }
 
+/* ---- Đóng màn hình nhập (nút ←, vuốt sang phải, nút Back của máy) ---- */
+function closeEntryUI(){
+  syncForm();
+  L.form.lines = L.form.lines.filter(function(l){ return !lineEmpty(l); });
+  var bad = lineProblem(L.form.lines);
+  if(bad){ L.err = bad; return false; }
+  L.entry = false; L.err = ""; L.usePick = false;
+  return true;
+}
+function closeFormUI(){
+  syncForm();
+  /* note mới: giữ bản nháp để mở lại; đang sửa thì bỏ */
+  if(L.form && L.form.id) L.form = blankForm();
+  L.formOpen = false; L.entry = false; L.err = "";
+  return true;
+}
+function closeTopOverlay(){
+  if(L.entry) closeEntryUI();
+  else if(L.formOpen) closeFormUI();
+  render();
+}
+
+/* Mỗi màn hình đang mở là một bước trong lịch sử trình duyệt, nên nút Back của Android
+   và cử chỉ vuốt từ mép trái của Safari đóng đúng màn hình trên cùng. */
+var hist = { pushed: 0, ignore: 0 };
+function overlayDepth(){
+  if(state.tab !== "items" || L.status !== "ready") return 0;
+  return (L.formOpen ? 1 : 0) + (L.entry ? 1 : 0);
+}
+function syncHistory(){
+  var want = overlayDepth();
+  try{
+    while(hist.pushed < want){ history.pushState({ ctnOverlay: hist.pushed + 1 }, ""); hist.pushed++; }
+    if(hist.pushed > want){ var n = hist.pushed - want; hist.pushed = want; hist.ignore++; history.go(-n); }
+  }catch(e){}
+}
+window.addEventListener("popstate", function(){
+  if(hist.ignore){ hist.ignore--; return; }
+  if(hist.pushed > 0){ hist.pushed--; closeTopOverlay(); }
+});
+
+/* Vuốt sang phải để quay lại (cho app mở từ màn hình chính, nơi không có cử chỉ của trình duyệt) */
+(function(){
+  var g = null;
+  function topEl(){ var all = document.querySelectorAll(".entry"); return all.length ? all[all.length - 1] : null; }
+  document.addEventListener("touchstart", function(e){
+    var el = topEl();
+    if(!el || e.touches.length !== 1 || !el.contains(e.target)) return;
+    /* đang gõ trong ô thì để yên cho việc chọn chữ */
+    if(e.target === document.activeElement && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    var t = e.touches[0];
+    g = { el: el, x: t.clientX, y: t.clientY, dx: 0, t: Date.now(), on: false };
+  }, { passive: true });
+  document.addEventListener("touchmove", function(e){
+    if(!g) return;
+    var t = e.touches[0], dx = t.clientX - g.x, dy = t.clientY - g.y;
+    if(!g.on){
+      if(Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)){ g = null; return; }
+      if(dx > 12 && dx > Math.abs(dy) * 1.5){ g.on = true; g.el.classList.add("dragging"); }
+      else return;
+    }
+    g.dx = Math.max(0, dx);
+    g.el.style.transform = "translateX(" + g.dx + "px)";
+    if(e.cancelable) e.preventDefault();
+  }, { passive: false });
+  function end(){
+    if(!g) return;
+    var d = g; g = null;
+    if(!d.on) return;
+    var w = d.el.offsetWidth || window.innerWidth;
+    var fast = d.dx > 50 && d.dx / Math.max(1, Date.now() - d.t) > 0.5;
+    d.el.classList.remove("dragging");
+    if(d.dx > w * 0.33 || fast){
+      d.el.style.transform = "translateX(" + w + "px)";
+      setTimeout(function(){
+        d.el.style.transform = "";
+        if(hist.pushed > 0) history.back(); else closeTopOverlay();
+      }, 180);
+    }else{
+      d.el.style.transform = "";
+    }
+  }
+  document.addEventListener("touchend", end);
+  document.addEventListener("touchcancel", end);
+})();
+
 function viewForm(f, editing){
   var d = isoDate(f.date);
   return '<div class="entry nform" role="dialog" aria-modal="true" aria-label="' + (editing ? "Sửa note" : "Note mới") + '">' +
@@ -2583,11 +2671,7 @@ function wireItems(){
     if(act === "save") return saveItem();
     if(act === "cancel"){ L.form = blankForm(); L.err = ""; L.entry = false; L.formOpen = false; return render(); }
     if(act === "openForm"){ L.formOpen = true; L.err = ""; return render(); }
-    if(act === "closeForm"){
-      /* note mới: giữ bản nháp để mở lại; đang sửa thì bỏ */
-      if(L.form && L.form.id) L.form = blankForm();
-      L.formOpen = false; L.entry = false; L.err = ""; return render();
-    }
+    if(act === "closeForm"){ closeFormUI(); return render(); }
     if(act === "edit"){
       var it = L.items.filter(function(x){ return x.id === id; })[0];
       if(it){ L.form = formFrom(it); L.err = ""; L.formOpen = true; render(); }
@@ -2597,12 +2681,7 @@ function wireItems(){
     if(act === "who"){ L.who = id; return render(); }
     if(act === "lines"){ L.openLines[id] = !L.openLines[id]; return render(); }
     if(act === "openEntry"){ L.entry = true; L.err = ""; return render(); }
-    if(act === "closeEntry"){
-      L.form.lines = L.form.lines.filter(function(l){ return !lineEmpty(l); });
-      var bad = lineProblem(L.form.lines);
-      if(bad){ L.err = bad; return render(); }
-      L.entry = false; L.err = ""; L.usePick = false; return render();
-    }
+    if(act === "closeEntry"){ closeEntryUI(); return render(); }
     if(act === "addLine"){
       var ls = L.form.lines; ls.push(blankLine(ls[ls.length - 1])); L.err = ""; render();
       var eb = document.getElementById("entryBody"); if(eb) eb.scrollTop = eb.scrollHeight;
@@ -2697,6 +2776,7 @@ function render(){
   });
   if(Math.abs(window.scrollY - winY) > 1) window.scrollTo(0, winY);
   document.body.classList.toggle("lock", state.tab === "items" && !!(L.entry || L.formOpen) && L.status === "ready");
+  syncHistory();
   wire();
 }
 
