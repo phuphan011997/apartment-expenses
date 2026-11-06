@@ -184,6 +184,16 @@ section{display:flex;flex-direction:column;gap:14px}
 .ck b{flex:none;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .ck span{min-width:0;overflow-wrap:anywhere;color:var(--accent-ink);font-weight:500}
 
+/* Tổng quan · chia tiền theo ngày: ngày in đậm, người mua / CK thụt vào trong một khối riêng */
+.dayitem.split{padding:13px 0;border-top:1px solid var(--line)}
+.dayitem.split:first-child{padding-top:2px}
+.dayitem.split .head .nm{font-size:15.5px;font-weight:700;letter-spacing:-.01em}
+.dayitem.split .head .amt{font-weight:700}
+.dayitem.split .me{margin-top:6px}
+.dx{margin:9px 0 0 12px;padding:7px 10px;border-left:3px solid var(--accent);border-radius:0 9px 9px 0;background:var(--surface-2);display:flex;flex-direction:column;gap:4px}
+.dx div{display:flex;gap:8px;align-items:baseline;font-size:12.5px}
+.dx b{flex:none;width:68px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.dx span{min-width:0;overflow-wrap:anywhere;color:var(--accent-ink);font-weight:600}
 .dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:16px 0 2px;padding-bottom:6px;border-bottom:1px solid var(--line)}
 .dayhead b{font-size:13px;font-weight:700;letter-spacing:.03em}
 .dayhead span{font-family:var(--font-num);font-size:12.5px;color:var(--muted)}
@@ -426,7 +436,7 @@ body.lock{overflow:hidden}
    Bố cục giữ nguyên; chỉ đổi màu, bo góc, bóng đổ kiểu đất sét, chữ tròn.
    Bật bằng <html data-skin="clay">. Sáng/tối vẫn theo nút đổi nền. */
 :root[data-skin="clay"]{
-  --bg:#FFF8EC; --bg-grad:linear-gradient(160deg,#FFFBF0 0%,#FEF3E2 50%,#FDF2FF 100%);
+  --bg:#FFF8EC; --bg-top:#FFFBF0; --bg-grad:linear-gradient(160deg,#FFFBF0 0%,#FEF3E2 50%,#FDF2FF 100%);
   --surface:#FFFFFF; --surface-2:#F1F5F9; --line:#E2E8F0;
   --fg:#1E293B; --muted:#64748B;
   --accent:#3B82F6; --accent-ink:#1D4ED8; --accent-soft:#DBEAFE;
@@ -444,7 +454,7 @@ body.lock{overflow:hidden}
 }
 @media (prefers-color-scheme: dark){
   :root[data-skin="clay"]:not([data-theme="light"]){
-    --bg:#1A1740; --bg-grad:linear-gradient(160deg,#1E1B4B 0%,#271F57 50%,#3B1D4F 100%);
+    --bg:#1A1740; --bg-top:#1E1B4B; --bg-grad:linear-gradient(160deg,#1E1B4B 0%,#271F57 50%,#3B1D4F 100%);
     --surface:#25225B; --surface-2:#2F2B6B; --line:#3B3780;
     --fg:#F1F5F9; --muted:#AEB2DE;
     --accent:#60A5FA; --accent-ink:#BFDBFE; --accent-soft:#1E3A8A;
@@ -454,7 +464,7 @@ body.lock{overflow:hidden}
   }
 }
 :root[data-skin="clay"][data-theme="dark"]{
-  --bg:#1A1740; --bg-grad:linear-gradient(160deg,#1E1B4B 0%,#271F57 50%,#3B1D4F 100%);
+  --bg:#1A1740; --bg-top:#1E1B4B; --bg-grad:linear-gradient(160deg,#1E1B4B 0%,#271F57 50%,#3B1D4F 100%);
   --surface:#25225B; --surface-2:#2F2B6B; --line:#3B3780;
   --fg:#F1F5F9; --muted:#AEB2DE;
   --accent:#60A5FA; --accent-ink:#BFDBFE; --accent-soft:#1E3A8A;
@@ -462,11 +472,12 @@ body.lock{overflow:hidden}
   --clay-line:rgba(255,255,255,.07); --clay-shadow:rgba(0,0,0,.35);
   color-scheme:dark;
 }
-:root[data-skin="clay"] body{background:var(--bg) var(--bg-grad) fixed;font-weight:500}
-:root[data-skin="clay"] main{padding-bottom:124px}
+:root[data-skin="clay"] body{background:var(--bg);font-weight:500}
+/* nền gradient nằm trên một lớp cố định riêng: cuộn trang không phải vẽ lại nền (đỡ giật) */
+:root[data-skin="clay"] body::before{content:"";position:fixed;inset:0;z-index:-1;background:var(--bg-grad);pointer-events:none;transform:translateZ(0)}
 
 /* thanh trên: thẻ xanh gradient nổi */
-:root[data-skin="clay"] .topbar{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:0;padding-top:10px}
+:root[data-skin="clay"] .topbar{background:linear-gradient(to bottom,var(--bg-top) 78%,transparent);backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:0;padding:10px 0 6px}
 :root[data-skin="clay"] .topbar .wrap{width:calc(100% - 32px);max-width:528px;padding:10px 12px;min-height:0;
   background:linear-gradient(90deg,var(--clay-blue),var(--clay-indigo));border:2px solid rgba(255,255,255,.2);border-radius:18px;box-shadow:4px 6px 0 rgba(0,0,0,.12)}
 :root[data-skin="clay"] .brand b{font-family:var(--font-display);font-size:20px;font-weight:800;color:#fff;line-height:1.1}
@@ -478,9 +489,9 @@ body.lock{overflow:hidden}
 :root[data-skin="clay"] .topbar .iconbtn[aria-pressed="true"]{background:rgba(253,224,71,.3);border-color:rgba(253,224,71,.5);color:#FEF9C3}
 
 /* thanh menu dưới: thẻ trắng nổi, mục đang chọn là nút xanh */
-:root[data-skin="clay"] .tabbar{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;border-top:0;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px)}
-:root[data-skin="clay"] .tabbar .wrap{width:calc(100% - 32px);max-width:528px;padding:6px;gap:4px;background:var(--surface);border:2px solid var(--clay-line);border-radius:20px;box-shadow:4px 6px 0 var(--clay-shadow)}
-:root[data-skin="clay"] .tab{border-radius:14px;padding:8px 1px;font-weight:800;transition:background .2s,color .2s}
+:root[data-skin="clay"] .tabbar{background:var(--surface);backdrop-filter:none;-webkit-backdrop-filter:none;border-top:2px solid var(--clay-line);border-radius:22px 22px 0 0;box-shadow:0 -4px 0 var(--clay-shadow)}
+:root[data-skin="clay"] .tabbar .wrap{padding-block:7px;gap:4px}
+:root[data-skin="clay"] .tab{border-radius:14px;padding:8px 1px;font-weight:800}
 :root[data-skin="clay"] .tab[aria-selected="true"]{background:var(--clay-blue);color:#fff;box-shadow:0 2px 6px rgba(59,130,246,.45)}
 
 /* thẻ đất sét */
@@ -534,7 +545,7 @@ body.lock{overflow:hidden}
 :root[data-skin="clay"] input:focus,:root[data-skin="clay"] select:focus{border-color:var(--clay-blue);outline:none;box-shadow:0 0 0 3px rgba(59,130,246,.2)}
 
 /* màn hình nhập */
-:root[data-skin="clay"] .entry{background:var(--bg) var(--bg-grad)}
+:root[data-skin="clay"] .entry{background:var(--bg-grad),var(--bg)}
 :root[data-skin="clay"] .entry .ehead{background:transparent;border-bottom:0}
 :root[data-skin="clay"] .entry .efoot{background:var(--surface);border-top:2px solid var(--clay-line);border-radius:22px 22px 0 0;box-shadow:0 -4px 0 var(--clay-shadow)}
 :root[data-skin="clay"] .entry .efoot .sum b{font-family:var(--font-display);font-weight:800}
@@ -546,6 +557,11 @@ body.lock{overflow:hidden}
 :root[data-skin="clay"] .ncard .ntop b{font-family:var(--font-display);font-size:17px;font-weight:700}
 
 /* chọn giao diện (Nâng cao) */
+.thmenu{position:fixed;z-index:70;right:max(16px,calc((100vw - 560px) / 2 + 16px));width:min(320px,calc(100vw - 32px));padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:0 12px 32px -8px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:8px}
+.thmenu .thsec{font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.thmenu .thsec + .seg{margin-bottom:4px}
+:root[data-skin="clay"] .thmenu{border:2px solid var(--clay-line);border-radius:22px;box-shadow:4px 6px 0 var(--clay-shadow),0 12px 32px -8px rgba(0,0,0,.2)}
+:root[data-skin="clay"] .thmenu .seg{box-shadow:none}
 .skins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .skin{display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
 .skin[aria-checked="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
@@ -573,7 +589,7 @@ body.lock{overflow:hidden}
       <button class="iconbtn" id="btnAdv" title="Nâng cao: chọn tab sheet, nguồn dữ liệu" aria-label="Nâng cao">
         <svg viewBox="0 0 24 24"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"></path><circle cx="15" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>
       </button>
-      <button class="iconbtn" id="btnTheme" title="Đổi nền sáng/tối" aria-label="Đổi nền sáng tối">
+      <button class="iconbtn" id="btnTheme" title="Nền và giao diện" aria-label="Nền và giao diện" aria-haspopup="dialog" aria-expanded="false">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
       </button>
       <button class="iconbtn" id="btnReload" title="Tải lại dữ liệu" aria-label="Tải lại dữ liệu">
@@ -1276,13 +1292,14 @@ function viewOverview(){
     h += '<div class="card"><div class="ttl"><h2>Chia tiền theo ngày</h2><em>' + esc(vnd(splitTotal)) + '</em></div><div>' +
       d.days.map(function(day){
         var paid = day.shares.filter(function(s){ return s.value; });
-        return '<div class="dayitem"><div class="head"><div class="main"><div class="nm">' + esc(day.label) + '</div>' +
+        return '<div class="dayitem split"><div class="head"><div class="main"><div class="nm">' + esc(day.label) + '</div>' +
           (paid.length ? '<div class="me">' + paid.map(function(s){
             return pchip(s.name, short(s.value));
           }).join("") + '</div>' : "") +
           '</div><div class="amt">' + esc(vnd(day.total)) + '</div></div>' +
-          (day.buyer ? '<div class="ck"><b>Người mua</b><span>' + esc(day.buyer) + '</span></div>' : "") +
-          (day.note ? '<div class="ck"><b>CK cho</b><span>' + esc(day.note) + '</span></div>' : "") +
+          (day.buyer || day.note ? '<div class="dx">' +
+            (day.buyer ? '<div><b>Người mua</b><span>' + esc(day.buyer) + '</span></div>' : "") +
+            (day.note ? '<div><b>CK cho</b><span>' + esc(day.note) + '</span></div>' : "") + '</div>' : "") +
           '</div>';
       }).join("") + '</div></div>';
   }
@@ -2016,12 +2033,7 @@ function viewSheets(){
     '<div class="seg" id="fTone">' + tones.map(function(t){
       return '<button data-v="' + t[0] + '" aria-pressed="' + (state.btnTone === t[0]) + '">' + t[1] + '</button>';
     }).join("") + '</div></div>';
-  var skins = '<div class="card"><div class="ttl"><h2>Giao diện</h2></div><div class="skins" role="radiogroup" id="fSkin">' +
-    SKINS.map(function(k){
-      return '<button class="skin" role="radio" data-skin="' + k.id + '" aria-checked="' + (state.skin === k.id) + '">' +
-        '<span class="pv p-' + k.id + '"><i></i><i></i><i></i></span><span><b>' + esc(k.name) + '</b><small>' + esc(k.sub) + '</small></span></button>';
-    }).join("") + '</div></div>';
-  return h + src + skins + colors;
+  return h + src + colors;
 }
 
 /* ---------- render ---------- */
@@ -2973,11 +2985,6 @@ function wire(){
     var b = e.target.closest(".pill"); if(!b || b.dataset.v === state.payWho) return;
     state.payWho = b.dataset.v; save(); render();
   });
-  var fsk = document.getElementById("fSkin");
-  if(fsk) fsk.addEventListener("click", function(e){
-    var b = e.target.closest(".skin"); if(!b || b.dataset.skin === state.skin) return;
-    state.skin = b.dataset.skin; applySkin(); save(); render();
-  });
   var ft = document.getElementById("fTone");
   if(ft) ft.addEventListener("click", function(e){
     var b = e.target.closest("button"); if(!b) return;
@@ -3054,12 +3061,54 @@ function leaveAdvanced(to){
 }
 document.getElementById("btnAdv").addEventListener("click", openAdvanced);
 document.getElementById("brandBtn").addEventListener("click", openAdvanced);
-document.getElementById("btnTheme").addEventListener("click", function(){
-  var cur = document.documentElement.getAttribute("data-theme");
-  var next = cur === "dark" ? "light" : cur === "light" ? "dark"
-    : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
-  document.documentElement.setAttribute("data-theme", next); save();
+/* Nút sáng/tối mở một bảng nhỏ: chọn nền (tự động / sáng / tối) và giao diện */
+var thmenu = null;
+function themeMenuHTML(){
+  var cur = document.documentElement.getAttribute("data-theme") || "auto";
+  return '<div class="thsec">Nền</div><div class="seg" id="thMode">' +
+      [["auto", "Tự động"], ["light", "Sáng"], ["dark", "Tối"]].map(function(m){
+        return '<button data-v="' + m[0] + '" aria-pressed="' + (cur === m[0]) + '">' + m[1] + '</button>';
+      }).join("") + '</div>' +
+    '<div class="thsec">Giao diện</div><div class="skins" role="radiogroup">' +
+      SKINS.map(function(k){
+        return '<button class="skin" role="radio" data-skin="' + k.id + '" aria-checked="' + (state.skin === k.id) + '">' +
+          '<span class="pv p-' + k.id + '"><i></i><i></i><i></i></span><span><b>' + esc(k.name) + '</b><small>' + esc(k.sub) + '</small></span></button>';
+      }).join("") + '</div>';
+}
+function closeThemeMenu(){
+  if(!thmenu) return;
+  thmenu.remove(); thmenu = null;
+  document.getElementById("btnTheme").setAttribute("aria-expanded", "false");
+}
+function openThemeMenu(){
+  var btn = document.getElementById("btnTheme");
+  thmenu = document.createElement("div");
+  thmenu.className = "thmenu"; thmenu.setAttribute("role", "dialog"); thmenu.setAttribute("aria-label", "Nền và giao diện");
+  thmenu.innerHTML = themeMenuHTML();
+  document.body.appendChild(thmenu);
+  var r = btn.getBoundingClientRect();
+  thmenu.style.top = Math.round(r.bottom + 8) + "px";
+  btn.setAttribute("aria-expanded", "true");
+  thmenu.addEventListener("click", function(e){
+    e.stopPropagation();
+    var m = e.target.closest("#thMode button"), k = e.target.closest(".skin");
+    if(m){
+      if(m.dataset.v === "auto") document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.setAttribute("data-theme", m.dataset.v);
+    }else if(k){
+      state.skin = k.dataset.skin; applySkin();
+    }else return;
+    save(); thmenu.innerHTML = themeMenuHTML();
+    var r2 = btn.getBoundingClientRect(); thmenu.style.top = Math.round(r2.bottom + 8) + "px";
+  });
+}
+document.getElementById("btnTheme").addEventListener("click", function(e){
+  e.stopPropagation();
+  if(thmenu) closeThemeMenu(); else openThemeMenu();
 });
+document.addEventListener("click", function(e){ if(thmenu && !thmenu.contains(e.target)) closeThemeMenu(); });
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") closeThemeMenu(); });
+window.addEventListener("scroll", function(){ if(thmenu) closeThemeMenu(); }, { passive: true });
 document.addEventListener("visibilitychange", function(){
   if(!document.hidden && state.source === "live" && state.fetchedAt && Date.now() - state.fetchedAt.getTime() > 45000) reload();
 });

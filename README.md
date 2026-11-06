@@ -114,7 +114,7 @@ Màu nút theo loại việc: **xanh dương** lưu/xác nhận/thêm, **tím** 
 **xanh ngọc** việc với Google Sheet, **xanh lá** Đồng bộ lại, **đỏ** xoá, **viền xám** huỷ/quay lại/thử lại. Nút đặc
 là việc chính, nút nền nhạt là việc phụ cùng loại. Độ đậm nhạt chỉnh trong Nâng cao → Màu nút.
 
-**Giao diện** (Nâng cao → Giao diện): **Mặc định** hoặc **Vui tươi** (nền kem gradient, thanh
+**Giao diện** (bấm nút sáng/tối ở đầu trang: chọn nền Tự động / Sáng / Tối và giao diện): **Mặc định** hoặc **Vui tươi** (nền kem gradient, thanh
 trên xanh, thẻ nổi bóng đổ, chữ tròn Nunito/Baloo 2). Nút sáng/tối dùng được cho cả hai.
 Thêm giao diện mới: một dòng trong `SKINS` và một khối CSS `:root[data-skin="…"]`.
 
