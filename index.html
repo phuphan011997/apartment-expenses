@@ -382,6 +382,18 @@ body.lock{overflow:hidden}
 .egrid > *{min-width:0}
 .ef label{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin:0 0 4px}
 .ef .calc{display:block;font-size:11.5px;color:var(--muted);font-family:var(--font-num);margin-top:3px;min-height:1em}
+.eadds{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.eline.use{border-style:dashed}
+.eline .utag{flex:1;font-size:12px;font-weight:700;color:var(--b-edit)}
+.utitle{font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.utitle small{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px}
+.uleft{padding:11px 12px;border-radius:10px;background:var(--surface-2);font-size:15px}
+.upick{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+.uopt{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px;border:0;border-radius:9px;background:var(--surface-2);color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.uopt .t{min-width:0;font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.uopt .t small{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-top:2px}
+.uopt .r{flex:none;font-size:12.5px;font-weight:700;color:var(--b-edit)}
+.nline.use .t{color:var(--muted)}
 .eadd{border:1px dashed var(--line);background:none;color:var(--accent-ink);border-radius:var(--r);padding:12px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
 
 /* lịch tháng của Note */
@@ -1184,8 +1196,11 @@ function viewList(){
         return '<div class="row">' + pdot(it.buyer) +
           '<div class="main"><div class="nm">' + esc(it.name) + '</div><div class="me"><span>' + esc(it.buyer) + '</span>' +
           (it.qty ? '<span>·</span><span>' + esc(it.qty) + '</span>' : "") +
-          (it.leftQty ? '<span class="chip ok">còn ' + esc(it.leftQty) + (it.leftVal ? " · " + esc(short(it.leftVal)) : "") + '</span>' : "") +
-          (it.amount == null ? '<span class="chip warn">chưa điền tiền</span>' : "") +
+          (isReuse(it)
+            ? '<span class="chip">dùng đồ dư' + (it.leftVal ? " · " + esc(short(it.leftVal)) : "") + '</span>' +
+              (it.leftQty && !/^h[eế]t$/i.test(it.leftQty.trim()) ? '<span class="chip ok">' + esc(it.leftQty) + '</span>' : "")
+            : (it.leftQty ? '<span class="chip ok">còn ' + esc(it.leftQty) + (it.leftVal ? " · " + esc(short(it.leftVal)) : "") + '</span>' : "") +
+              (it.amount == null ? '<span class="chip warn">chưa điền tiền</span>' : "")) +
           '</div></div><div class="amt">' + (it.amount == null ? "—" : esc(vnd(it.amount))) + '</div></div>';
       }).join("") + '</div></div>';
   }).join("");
@@ -1221,6 +1236,7 @@ function nameKey(s){
      Phần mua nhiều hơn (đồ dư) người mua giữ lại, chưa ai nợ.
    - Ngày nào các cột chia cộng không đủ "Tổng cộng" thì phần thiếu chỉ trừ vào
      người đã ứng hôm đó, không lan sang người khác trong tuần. */
+function isReuse(it){ return /^\s*↳/.test(it.name || ""); }
 function settle(d){
   var groups = [];
   var names = d.days.length ? d.days[0].shares.map(function(s){ return s.name; }) : [];
@@ -1243,8 +1259,19 @@ function settle(d){
   var dayOf = {};
   d.days.forEach(function(day){ dayOf[day.label] = day; });
 
-  var buckets = {}, loose = [];
+  var buckets = {}, loose = [], reuse = [];
   d.items.forEach(function(it){
+    /* dòng "↳ món (dư dd/mm)": dùng tiếp đồ dư, tiền đã tính ở ngày mua. Giá trị phần dùng
+       nằm ở cột kế Ngày; ghi có cho người mua vào ngày dùng, bớt phần "giữ đồ dư" ở ngày mua. */
+    if(isReuse(it)){
+      var gr = groupOf(it.buyer), lb = it.date ? dshort(it.date) : "";
+      if(it.leftVal > 0 && dayOf[lb]){
+        (buckets[lb] = buckets[lb] || []).push({ g: gr, amt: it.leftVal });
+        var m = /\(d[uư]\s+(\d{1,2}\/\d{1,2})\)\s*$/i.exec(it.name);
+        reuse.push({ g: gr, amt: it.leftVal, from: m ? m[1] : "" });
+      }
+      return;
+    }
     if(it.amount == null) return;
     var g = groupOf(it.buyer);
     g.paid += it.amount;
@@ -1311,6 +1338,12 @@ function settle(d){
     gapRows.push({ day: day.label, total: day.total, credited: credited, sum: shareSum, gap: gap, who: who, hint: hint });
   });
 
+  reuse.forEach(function(x){
+    x.g.held = Math.max(0, x.g.held - x.amt);
+    var hr = heldRows.filter(function(h){ return h.name === x.g.label && h.day === x.from; })[0];
+    if(hr) hr.amt -= x.amt;
+  });
+  heldRows = heldRows.filter(function(h){ return h.amt > 1; });
   groups.forEach(function(g){ g.net = g.credit - g.uncovered - g.owed; });
   return { groups: groups, held: heldRows, loose: loose, gaps: gapRows };
 }
@@ -1730,14 +1763,26 @@ function viewStats(){
 
   /* Chỉ lấy dòng có ghi "Dư lại". Cột bên cạnh không phải lúc nào cũng là giá trị
      đồ dư: ngày 01/10 nó là phần chia mỗi người (thịt bò 250.000 / 6 = 41.667). */
-  var left = items.filter(function(i){ return i.leftQty; });
+  /* món đã có dòng "↳ món (dư dd/mm)" dùng tiếp thì không còn tính là dư ở ngày mua;
+     dòng dùng tiếp ghi "hết" thì cũng không hiện */
+  var usedKey = {};
+  items.forEach(function(i){
+    if(!isReuse(i)) return;
+    var m = /^\s*↳\s*(.*?)\s*\(d[uư]\s+(\d{1,2}\/\d{1,2})\)\s*$/i.exec(i.name);
+    if(m) usedKey[m[1].toLowerCase() + "|" + m[2]] = 1;
+  });
+  var left = items.filter(function(i){
+    if(!i.leftQty) return false;
+    if(isReuse(i)) return !/^h[eế]t$/i.test(i.leftQty.trim());
+    return !usedKey[i.name.toLowerCase() + "|" + dshort(i.date)];
+  });
   if(left.length){
     h += '<div class="card"><div class="ttl"><h2>Còn dư trong bếp</h2><em>' +
-      esc(vnd(left.reduce(function(a, b){ return a + (b.leftVal || 0); }, 0))) + '</em></div><div class="rows">' +
+      esc(vnd(left.reduce(function(a, b){ return a + (isReuse(b) ? 0 : b.leftVal || 0); }, 0))) + '</em></div><div class="rows">' +
       left.map(function(it){
         return '<div class="row"><div class="main"><div class="nm">' + esc(it.name) + '</div><div class="me"><span>còn ' +
           esc(it.leftQty || "—") + '</span><span>·</span><span>mua ' + esc(dshort(it.date)) +
-          '</span></div></div><div class="amt">' + (it.leftVal ? esc(vnd(it.leftVal)) : "—") + '</div></div>';
+          '</span></div></div><div class="amt">' + (it.leftVal && !isReuse(it) ? esc(vnd(it.leftVal)) : "—") + '</div></div>';
       }).join("") + '</div></div>';
   }
   return h;
@@ -1823,7 +1868,7 @@ var L = {
   form: null, saving: false, err: "",
   delArm: "", flash: "", who: "all",
   memberMsg: "", busy: false,
-  sheetSync: false, entry: false, openLines: {},
+  sheetSync: false, entry: false, openLines: {}, usePick: false,
   syncFor: "", syncTab: "", tabs: null, syncBusy: false, syncErr: "", syncConflict: false
 };
 function tokenGet(){ try{ return localStorage.getItem(TK) || ""; }catch(e){ return ""; } }
@@ -1863,7 +1908,9 @@ function portionLabel(p){ for(var i = 0; i < PORTIONS.length; i++){ if(PORTIONS[
 function formFrom(it){
   var p = {}; it.participants.forEach(function(x){ p[x] = 1; });
   var lines = (it.lines || []).map(function(l){
-    return { buyer: l.buyer || "", desc: l.desc || "", qty: l.qty || "", expr: l.amount == null ? "" : String(l.amount), left: l.left || "", portion: l.portion || "1" };
+    if(l.kind === "use") return { id: l.id, kind: "use", src: l.src, srcDate: l.srcDate || "", buyer: l.buyer || "", desc: l.desc || "",
+                                  qty: "", expr: "", left: l.left || "", portion: l.portion || "1" };
+    return { id: l.id, buyer: l.buyer || "", desc: l.desc || "", qty: l.qty || "", expr: l.amount == null ? "" : String(l.amount), left: l.left || "", portion: l.portion || "1" };
   });
   /* note cũ chỉ có số tiền + người trả: chuyển thành một món */
   if(!lines.length && it.amount) lines.push({ buyer: it.payer || "", desc: it.title, qty: "", expr: String(it.amount), left: "", portion: "1" });
@@ -1892,7 +1939,7 @@ function parseAmount(raw){
     return { amount: Math.round(v), formula: /[+\-*\/()]/.test(s) ? s : null };
   }catch(e){ return { error: true }; }
 }
-function lineEmpty(l){ return !l.desc.trim() && !l.qty.trim() && !l.expr.trim() && !l.left.trim(); }
+function lineEmpty(l){ return l.kind !== "use" && !l.desc.trim() && !l.qty.trim() && !l.expr.trim() && !l.left.trim(); }
 function linesTotal(lines){
   return lines.reduce(function(a, l){ var p = parseAmount(l.expr); return a + (p.amount || 0); }, 0);
 }
@@ -1971,7 +2018,11 @@ function saveItem(){
   if(bad){ L.err = bad; L.entry = true; render(); return; }
   var id = f.id || newId("it_"), editing = !!f.id;
   var body = { title: f.title, date: f.date, participants: parts, amount: null, payer: null, note: f.note,
-               lines: f.lines.map(function(l){ return { buyer: l.buyer, desc: l.desc, qty: l.qty, expr: l.expr, left: l.left, portion: l.portion || "1" }; }) };
+               lines: f.lines.map(function(l){
+                 return l.kind === "use"
+                   ? { id: l.id, kind: "use", src: l.src, srcDate: l.srcDate, buyer: l.buyer, desc: l.desc, left: l.left, portion: l.portion }
+                   : { id: l.id, buyer: l.buyer, desc: l.desc, qty: l.qty, expr: l.expr, left: l.left, portion: l.portion || "1" };
+               }) };
   L.saving = true; L.err = ""; render();
   api("PUT", "items/" + id, body).then(function(r){
     L.saving = false;
@@ -1984,9 +2035,68 @@ function saveItem(){
     flash((editing ? "Đã sửa " : "Đã lưu ") + "“" + r.item.title + "”", true);
   }).catch(function(){ L.saving = false; L.err = "Mất kết nối, chưa lưu được."; rerender(); });
 }
+/* ---- Dùng tiếp đồ dư ----
+   Phần của món tính theo 1/12: "1/2" -> 6. Món gốc là món có "Tính vào chia" nhỏ hơn
+   cả món; phần còn lại = 12 - phần đã chia ngày mua - các lần dùng tiếp. */
+function tw(p){
+  var m = /^(\d{1,2})(?:\/(\d{1,2}))?$/.exec(String(p == null ? "1" : p));
+  if(!m) return 12;
+  var a = +m[1], b = m[2] ? +m[2] : 1;
+  return Math.round(12 * a / b);
+}
+function frac(k){
+  if(k >= 12) return "1";
+  if(k <= 0) return "0";
+  var g = function(x, y){ return y ? g(y, x % y) : x; }, d = g(k, 12);
+  return (k / d) + "/" + (12 / d);
+}
+function fracLabel(k){
+  var known = { 12: "cả món", 6: "½", 4: "⅓", 8: "⅔", 3: "¼", 9: "¾" };
+  return known[k] || frac(k);
+}
+/* Danh sách đồ dư còn dùng được. skipItem: note đang sửa (không tính các lần dùng đã lưu
+   của nó, vì đang nằm trong form), formLines: các dòng dùng dư trong form. */
+function leftovers(skipItem, formLines){
+  var out = [], byKey = {};
+  L.items.forEach(function(it){
+    if(it.id === skipItem) return;
+    (it.lines || []).forEach(function(l){
+      if(l.kind === "use" || !l.id) return;
+      var k = tw(l.portion);
+      if(k >= 12) return;
+      var o = { key: it.id + ":" + l.id, item: it, line: l, rest: 12 - k };
+      byKey[o.key] = o; out.push(o);
+    });
+  });
+  var spend = function(l){ var o = l.src && byKey[l.src.item + ":" + l.src.line]; if(o) o.rest -= tw(l.portion); };
+  L.items.forEach(function(it){ if(it.id !== skipItem) (it.lines || []).forEach(function(l){ if(l.kind === "use") spend(l); }); });
+  (formLines || []).forEach(function(l){ if(l.kind === "use") spend(l); });
+  return { list: out.filter(function(o){ return o.rest > 0; }).sort(function(a, b){ return a.item.date < b.item.date ? 1 : -1; }), byKey: byKey };
+}
+function useLine(o, prev){
+  var rest = o.rest;
+  return { id: "", kind: "use", src: { item: o.item.id, line: o.line.id }, srcDate: o.item.date, buyer: o.line.buyer,
+           desc: o.line.desc, qty: "", expr: "", left: "hết", portion: frac(rest) };
+}
+/* các mức dùng được cho một dòng dùng dư: phần còn lại (kể cả phần dòng này đang giữ) */
+function useOptions(l){
+  var lo = leftovers(L.form.id, L.form.lines.filter(function(x){ return x !== l; }));
+  var o = lo.byKey[l.src.item + ":" + l.src.line];
+  var rest = o ? o.rest : tw(l.portion);
+  var ks = [rest];
+  [9, 8, 6, 4, 3].forEach(function(k){ if(k < rest) ks.push(k); });
+  return { rest: rest, ks: ks, src: o };
+}
+function useValue(l){
+  var src = null;
+  L.items.forEach(function(it){ if(it.id === l.src.item) (it.lines || []).forEach(function(x){ if(x.id === l.src.line) src = x; }); });
+  return src && src.amount ? Math.round(src.amount * tw(l.portion) / 12) : null;
+}
+
 function lineProblem(lines){
   for(var i = 0; i < lines.length; i++){
     var l = lines[i], nm = l.desc.trim() || ("món " + (i + 1));
+    if(l.kind === "use") continue;
     if(!l.desc.trim()) return "Món " + (i + 1) + " chưa có mô tả.";
     if(!l.buyer) return "Chọn người mua cho “" + nm + "”.";
     if(parseAmount(l.expr).error) return "Số tiền của “" + nm + "” không hợp lệ.";
@@ -2104,7 +2214,13 @@ function deleteMember(id){
   }).catch(function(){ L.memberMsg = "Mất kết nối, chưa xoá được."; rerender(); });
 }
 
-function shareOf(it){ var t = itemTotal(it); return t ? t / it.participants.length : 0; }
+/* phần mỗi người theo đúng cách bảng chia tính: món tính theo "Tính vào chia", cộng giá trị đồ dư dùng tiếp */
+function shareOf(it){
+  var t = it.lines && it.lines.length
+    ? it.lines.reduce(function(a, l){ return a + (l.kind === "use" ? (useValue(l) || 0) : (l.amount || 0) * tw(l.portion) / 12); }, 0)
+    : (it.amount || 0);
+  return t ? t / it.participants.length : 0;
+}
 function formHint(){
   var f = L.form;
   var n = Object.keys(f.participants).filter(function(k){ return f.participants[k]; }).length;
@@ -2153,6 +2269,12 @@ function noteLines(it){
     '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg></button>';
   if(!open) return head;
   return head + '<div class="nlines">' + it.lines.map(function(l){
+    if(l.kind === "use"){
+      var uv = useValue(l), sd = isoDate(l.srcDate);
+      return '<div class="nline use"><div class="t">↳ ' + esc(l.desc) + '<small><span>' + pdot(memberName(l.buyer)) + esc(memberName(l.buyer)) + '</span>' +
+        '<span>đồ dư ' + esc(sd ? dshort(sd) : "") + '</span><span>dùng ' + esc(fracLabel(tw(l.portion))) + '</span>' + (l.left ? '<span>' + esc(l.left) + '</span>' : "") + '</small></div>' +
+        '<span class="v">' + (uv ? esc(vnd(uv)) : "—") + '</span></div>';
+    }
     var bits = [pdot(memberName(l.buyer)) + esc(memberName(l.buyer))];
     if(l.qty) bits.push(esc(l.qty));
     if(l.left) bits.push("dư " + esc(l.left));
@@ -2231,6 +2353,16 @@ function exBox(f){
       : 'Chi tiêu<small>Chưa nhập món nào</small>') +
     '</div><button class="btn sm b-edit' + (lines.length ? " soft" : "") + '" data-act="openEntry">' + (lines.length ? "Sửa chi tiêu" : "Nhập chi tiêu") + '</button></div>';
 }
+function usePicker(f){
+  var lo = leftovers(f.id, f.lines).list;
+  if(!lo.length) return '<div class="upick"><div class="empty">Không có đồ dư nào. Đồ dư là món có “Tính vào chia” nhỏ hơn cả món.</div></div>';
+  return '<div class="upick">' + lo.map(function(o){
+    var d = isoDate(o.item.date);
+    return '<button class="uopt" data-act="useAdd" data-k="' + esc(o.key) + '"><span class="t">' + esc(o.line.desc) +
+      '<small>' + esc(memberName(o.line.buyer)) + ' · ' + esc(d ? dshort(d) : "") + ' · ' + esc(o.item.title) + (o.line.left ? ' · dư ' + esc(o.line.left) : "") + '</small></span>' +
+      '<span class="r">còn ' + esc(fracLabel(o.rest)) + '</span></button>';
+  }).join("") + '</div>';
+}
 /* màn hình nhập chi tiêu: mỗi món một khung, đúng các cột của sheet */
 function viewEntry(f){
   if(!f.lines.length) f.lines.push(blankLine());
@@ -2241,6 +2373,19 @@ function viewEntry(f){
   };
   var d = isoDate(f.date);
   var body = f.lines.map(function(l, i){
+    if(l.kind === "use"){
+      var uo = useOptions(l), sd = isoDate(l.srcDate), uv = useValue(l);
+      return '<div class="eline use"><div class="ehd"><span class="no">' + (i + 1) + '</span><span class="utag">Dùng đồ dư</span>' +
+          '<button class="lnk b-del" data-act="delLine" data-i="' + i + '">Bỏ</button></div>' +
+        '<div class="utitle">↳ ' + esc(l.desc) + '<small>' + esc(memberName(l.buyer)) + ' mua ' + esc(sd ? dshort(sd) : "") + '</small></div>' +
+        '<div class="egrid">' +
+          '<div class="ef"><label for="ln' + i + 'u">Dùng</label><select id="ln' + i + 'u" data-act-use="' + i + '">' +
+            uo.ks.map(function(k, j){
+              return '<option value="' + k + '"' + (tw(l.portion) === k ? " selected" : "") + '>' + (j === 0 ? "Hết phần còn lại (" + fracLabel(k) + ")" : fracLabel(k) + " món") + '</option>';
+            }).join("") + '</select><span class="calc">' + (uv ? esc(vnd(uv)) : "") + '</span></div>' +
+          '<div class="ef"><label>Dư lại</label><div class="uleft">' + esc(l.left || "hết") + '</div></div>' +
+        '</div></div>';
+    }
     var p = parseAmount(l.expr);
     return '<div class="eline"><div class="ehd"><span class="no">' + (i + 1) + '</span>' +
         '<button class="lnk b-del" data-act="delLine" data-i="' + i + '">Xoá món</button></div>' +
@@ -2263,7 +2408,9 @@ function viewEntry(f){
     '<div class="ehead"><div class="wrap"><button class="iconbtn" data-act="closeEntry" aria-label="Quay lại"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"></path></svg></button>' +
       '<div class="tt"><h1>Chi tiêu</h1><small>' + esc(f.title || "Note mới") + (d ? " · " + esc(dshort(d)) : "") + '</small></div></div></div>' +
     '<div class="ebody" id="entryBody"><div class="wrap">' + body +
-      '<button class="eadd b-edit" data-act="addLine">+ Thêm món</button>' +
+      '<div class="eadds"><button class="eadd b-edit" data-act="addLine">+ Thêm món</button>' +
+        '<button class="eadd b-edit" data-act="usePick"' + (L.usePick ? ' aria-expanded="true"' : "") + '>↳ Dùng đồ dư</button></div>' +
+      (L.usePick ? usePicker(f) : "") +
       (L.err ? '<div class="ferr">' + esc(L.err) + '</div>' : "") +
     '</div></div>' +
     '<div class="efoot"><div class="wrap"><div class="sum"><span id="enCount">' + f.lines.filter(function(l){ return !lineEmpty(l); }).length + ' món</span>' +
@@ -2426,7 +2573,7 @@ function wireItems(){
       L.form.lines = L.form.lines.filter(function(l){ return !lineEmpty(l); });
       var bad = lineProblem(L.form.lines);
       if(bad){ L.err = bad; return render(); }
-      L.entry = false; L.err = ""; return render();
+      L.entry = false; L.err = ""; L.usePick = false; return render();
     }
     if(act === "addLine"){
       var ls = L.form.lines; ls.push(blankLine(ls[ls.length - 1])); L.err = ""; render();
@@ -2435,10 +2582,29 @@ function wireItems(){
       return;
     }
     if(act === "delLine"){ L.form.lines.splice(+b.dataset.i, 1); L.err = ""; return render(); }
+    if(act === "usePick"){ L.usePick = !L.usePick; return render(); }
+    if(act === "useAdd"){
+      var lo2 = leftovers(L.form.id, L.form.lines), o2 = lo2.byKey[b.dataset.k];
+      if(o2 && o2.rest > 0){
+        /* bỏ dòng trống cuối nếu có, rồi thêm dòng dùng dư */
+        var ls2 = L.form.lines;
+        if(ls2.length && lineEmpty(ls2[ls2.length - 1])) ls2.pop();
+        ls2.push(useLine(o2));
+      }
+      L.usePick = false; L.err = ""; return render();
+    }
     if(act === "syncOpen"){ var it2 = L.items.filter(function(x){ return x.id === id; })[0]; if(it2) openSync(it2); return; }
     if(act === "syncCancel"){ L.syncFor = ""; L.syncErr = ""; L.syncConflict = false; return render(); }
     if(act === "syncGo") return runSync(id, false);
     if(act === "syncForce") return runSync(id, true);
+  });
+  root.addEventListener("change", function(e){
+    var el = e.target; if(!el.dataset || el.dataset.actUse === undefined) return;
+    var ln = L.form.lines[+el.dataset.actUse]; if(!ln) return;
+    var k = +el.value, uo = useOptions(ln);
+    ln.portion = frac(k);
+    ln.left = k >= uo.rest ? "hết" : "còn " + fracLabel(uo.rest - k);
+    render();
   });
   root.addEventListener("input", function(e){
     var el = e.target; if(!el.dataset || !el.dataset.lf) return;

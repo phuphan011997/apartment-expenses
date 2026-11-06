@@ -104,10 +104,43 @@ function parseAmount(raw) {
 /* "Tính vào chia": cả món, một phần, hoặc không tính */
 const PORTIONS = ["1", "1/2", "1/3", "2/3", "1/4", "3/4", "0"];
 
+/* Phần của món tính theo 1/12 để cộng trừ không lệch: "1/2" -> 6, "1" -> 12 */
+function twelfths(p) {
+  const m = /^(\d{1,2})(?:\/(\d{1,2}))?$/.exec(String(p == null ? "" : p));
+  if (!m) return null;
+  const a = Number(m[1]), b = m[2] ? Number(m[2]) : 1;
+  if (!b || (12 * a) % b) return null;
+  const k = (12 * a) / b;
+  return k >= 0 && k <= 12 ? k : null;
+}
+function fracOf(k) {
+  if (k === 12) return "1";
+  if (k === 0) return "0";
+  const g = (x, y) => (y ? g(y, x % y) : x);
+  const d = g(k, 12);
+  return k / d + "/" + 12 / d;
+}
+const newLineId = () => "ln_" + crypto.randomBytes(6).toString("hex");
+const srcKey = (s) => s.item + ":" + s.line;
+
 function checkLines(arr, date, extra) {
   const lines = [];
   for (const raw of [].concat(arr || []).slice(0, 60)) {
     const l = raw || {};
+    const id = l.id && ID_RE.test(String(l.id)) ? String(l.id) : newLineId();
+    if (l.kind === "use") {
+      /* dùng tiếp đồ dư của một món ở note trước: không có số tiền, chỉ có phần dùng */
+      const src = l.src || {};
+      if (!ID_RE.test(String(src.item || "")) || !ID_RE.test(String(src.line || ""))) return { error: "Món dùng tiếp không hợp lệ." };
+      const desc = clean(l.desc, 120);
+      const k = twelfths(l.portion);
+      if (!desc || !k) return { error: "Chọn phần dùng cho “" + (desc || "đồ dư") + "”." };
+      const buyer = l.buyer && ID_RE.test(String(l.buyer)) ? String(l.buyer) : null;
+      const srcDate = DATE_RE.test(String(l.srcDate || "")) ? String(l.srcDate) : "";
+      lines.push({ id, kind: "use", src: { item: String(src.item), line: String(src.line) }, srcDate, buyer, desc,
+                   qty: "", expr: "", amount: null, formula: null, left: clean(l.left, 40), portion: fracOf(k) });
+      continue;
+    }
     const desc = clean(l.desc, 120);
     const a = parseAmount(l.expr != null ? l.expr : l.amount);
     if (!desc && a.amount === null && !clean(l.qty, 1)) continue; // dòng trống
@@ -116,7 +149,7 @@ function checkLines(arr, date, extra) {
     const buyer = l.buyer && ID_RE.test(String(l.buyer)) ? String(l.buyer) : null;
     if (!buyer) return { error: "Chọn người mua cho “" + desc + "”." };
     const portion = PORTIONS.indexOf(String(l.portion || "1")) >= 0 ? String(l.portion || "1") : "1";
-    lines.push({ buyer, desc, qty: clean(l.qty, 40), expr: a.formula || (a.amount === null ? "" : String(a.amount)),
+    lines.push({ id, buyer, desc, qty: clean(l.qty, 40), expr: a.formula || (a.amount === null ? "" : String(a.amount)),
                  amount: a.amount, formula: a.formula, left: clean(l.left, 40), portion });
   }
   const fp = crypto.createHash("sha1").update(JSON.stringify([date, lines, extra || null])).digest("hex").slice(0, 16);
@@ -149,6 +182,40 @@ function checkItem(b) {
   return { doc };
 }
 
+/* Kiểm tra dùng đồ dư: mỗi món gốc không bị dùng quá 100%, món đang được dùng
+   tiếp thì không xoá được. items = toàn bộ note sau khi thay note đang sửa. */
+function checkUsage(items, editedId) {
+  const byId = {};
+  items.forEach((it) => { byId[it._id] = it; });
+  const used = {};
+  for (const it of items) {
+    for (const l of it.lines || []) {
+      if (l.kind !== "use") continue;
+      const src = byId[l.src.item];
+      const sl = src && (src.lines || []).find((x) => x.id === l.src.line && x.kind !== "use");
+      const mine = it._id === editedId || l.src.item === editedId;
+      if (!sl) {
+        if (it._id === editedId) return "Món gốc của “" + l.desc + "” không còn nữa.";
+        if (l.src.item === editedId) return "Món “" + l.desc + "” đang được dùng tiếp ở note “" + it.title + "”, không xoá hoặc đổi khỏi note này được.";
+        continue;
+      }
+      if (src._id === it._id) return "Không dùng đồ dư của chính note này.";
+      const key = srcKey(l.src);
+      if (used[key] === undefined) used[key] = { k: twelfths(sl.portion || "1") || 0, mine: false };
+      used[key].k += twelfths(l.portion) || 0;
+      used[key].mine = used[key].mine || mine;
+    }
+  }
+  for (const key in used) {
+    if (used[key].k > 12 && used[key].mine) {
+      const [iid, lid] = key.split(":");
+      const sl = (byId[iid].lines || []).find((x) => x.id === lid);
+      return "“" + sl.desc + "” không còn đủ phần dư để dùng.";
+    }
+  }
+  return "";
+}
+
 /* Gọi Apps Script. Google trả về qua một lần chuyển hướng, fetch tự theo. */
 async function callScript(body) {
   const url = process.env.SHEET_SCRIPT_URL, secret = process.env.SHEET_SCRIPT_SECRET;
@@ -170,6 +237,7 @@ async function callScript(body) {
     no_block: "Tab này không có bảng “Người mua · Mô tả · SL · Số tiền · Dư lại · Ngày”.",
     prev_changed: "Các dòng đã ghi lần trước trên sheet đã bị sửa hoặc xoá.",
     no_lines: "Note chưa có món nào.",
+    src_changed: "Dòng món gốc trên sheet đã bị sửa hoặc dời chỗ. Đồng bộ lại note gốc trước.",
     no_split: "Tab này không có bảng chia tiền (hàng tiêu đề có ô “Ngày” và “Tổng cộng”).",
   };
   if (j.error === "no_split_col") return { ...j, code: j.error, error: "Bảng chia tiền không có cột cho: " + (j.names || []).join(", ") + ". Thêm cột cho người này trên sheet, hoặc đổi tên cho khớp." };
@@ -240,11 +308,22 @@ module.exports = async (req, res) => {
       const c = db.collection("items");
       if (method === "GET" && !id) {
         const list = await c.find({}).sort({ date: -1, createdAt: -1 }).limit(500).toArray();
+        /* note cũ: món chưa có mã thì gán mã để dùng tiếp đồ dư được */
+        for (const it of list) {
+          if ((it.lines || []).some((l) => !l.id)) {
+            it.lines = it.lines.map((l) => (l.id ? l : { ...l, id: newLineId() }));
+            await c.updateOne({ _id: it._id }, { $set: { lines: it.lines } });
+          }
+        }
         return send(res, 200, { items: list.map(out) });
       }
       if (method === "PUT" && id) {
         const r = checkItem(readBody(req));
         if (r.error) return bad(res, r.error);
+        const all = await c.find({}).toArray();
+        const next = all.filter((x) => x._id !== id).concat([{ _id: id, ...r.doc }]);
+        const usageErr = checkUsage(next, id);
+        if (usageErr) return send(res, 409, { error: usageErr });
         await c.updateOne({ _id: id }, { $set: { ...r.doc, updatedAt: now }, $setOnInsert: { createdAt: now } }, { upsert: true });
         return send(res, 200, { item: out(await c.findOne({ _id: id })) });
       }
@@ -257,20 +336,38 @@ module.exports = async (req, res) => {
         if (!it.lines || !it.lines.length) return bad(res, "Note chưa có món nào.");
         const members = await db.collection("members").find({}).toArray();
         const nameOf = (mid) => (members.find((m) => m._id === mid) || {}).name || "";
+        /* món dùng tiếp đồ dư: cần biết dòng của món gốc trên sheet */
+        const srcInfo = {};
+        for (const l of it.lines) {
+          if (l.kind !== "use") continue;
+          const src = await c.findOne({ _id: l.src.item });
+          const idx = src ? (src.lines || []).findIndex((x) => x.id === l.src.line) : -1;
+          if (idx < 0) return send(res, 409, { error: "Không tìm thấy món gốc của “" + l.desc + "”.", code: "src_missing" });
+          if (!src.sync || src.sync.fp !== src.linesFp || !src.sync.rows[idx]) {
+            return send(res, 409, { error: "Note “" + src.title + "” (món " + l.desc + ") chưa lên sheet hoặc đã sửa mà chưa đồng bộ lại. Đồng bộ note đó trước.", code: "src_unsynced" });
+          }
+          srcInfo[l.id] = { srcSheet: src.sync.sheet, srcRow: src.sync.rows[idx], srcDesc: src.sync.descs[idx] };
+        }
+        const dm = (iso) => (iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) : "");
         const prev = it.sync && it.sync.sheet === sheet
           ? { rows: it.sync.rows, descs: it.sync.descs, split: it.sync.split ? it.sync.split.formula : null } : null;
         const r = await callScript({
           action: "write", sheet, prev, force: !!b.force, date: it.date,
           participants: it.participants.map(nameOf).filter(Boolean),
-          lines: it.lines.map((l) => ({ buyer: nameOf(l.buyer), desc: l.desc, qty: l.qty, amount: l.amount,
-                                         formula: l.formula, left: l.left, date: it.date, portion: l.portion || "1" })),
+          lines: it.lines.map((l) => (l.kind === "use"
+            ? { kind: "use", buyer: nameOf(l.buyer), desc: "↳ " + l.desc + " (dư " + dm(l.srcDate) + ")", qty: "", amount: null,
+                formula: null, left: l.left, date: it.date, portion: l.portion, ...srcInfo[l.id] }
+            : { buyer: nameOf(l.buyer), desc: l.desc, qty: l.qty, amount: l.amount,
+                formula: l.formula, left: l.left, date: it.date, portion: l.portion || "1" })),
         });
-        if (r.error) return send(res, r.code === "prev_changed" ? 409 : r.code === "no_script" ? 503 : r.code === "no_split_col" || r.code === "no_split" ? 422 : 502, { error: r.error, code: r.code, row: r.row });
+        if (r.error) return send(res, r.code === "prev_changed" || r.code === "src_changed" ? 409 : r.code === "no_script" ? 503 : r.code === "no_split_col" || r.code === "no_split" ? 422 : 502, { error: r.error, code: r.code, row: r.row });
         const sync = { sheet, rows: r.rows, descs: r.descs, split: r.split || null, fp: it.linesFp, at: now };
         await c.updateOne({ _id: id }, { $set: { sync } });
         return send(res, 200, { item: out({ ...it, sync }) });
       }
       if (method === "DELETE" && id) {
+        const user = await c.findOne({ "lines.src.item": id, _id: { $ne: id } });
+        if (user) return send(res, 409, { error: "Đồ dư của note này đang được dùng tiếp ở note “" + user.title + "”. Bỏ món đó ở note kia trước." });
         await c.deleteOne({ _id: id });
         return send(res, 200, { ok: true });
       }

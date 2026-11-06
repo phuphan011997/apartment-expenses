@@ -158,6 +158,17 @@ function dayRows_(sh, sp) {
   return out;
 }
 
+/* "1/2" -> "/2", "2/3" -> "*2/3", "1" -> "" */
+function portionExpr_(p) {
+  p = String(p || '1');
+  return p === '1' ? '' : /^1\/\d+$/.test(p) ? p.slice(1) : '*' + p;
+}
+/* Ô Số tiền của món gốc, kèm tên tab nếu món gốc nằm ở tab khác: 'Tab'!E43 */
+function srcRef_(ln, sheetName) {
+  var cell = colLetter_(ln.srcAmountCol) + ln.srcRow;
+  return ln.srcSheet && ln.srcSheet !== sheetName ? "'" + String(ln.srcSheet).replace(/'/g, "''") + "'!" + cell : cell;
+}
+
 function writeSplit_(sh, sp, b, rows, buyers, tz) {
   var n = b.participants.length;
   var cnt = splitCounts_(sp, b.participants).counts;
@@ -165,7 +176,7 @@ function writeSplit_(sh, sp, b, rows, buyers, tz) {
   b.lines.forEach(function (ln, i) {
     var p = String(ln.portion || '1');
     if (p === '0') return;
-    terms.push(colLetter_(b.amountCol) + rows[i] + (p === '1' ? '' : /^1\/\d+$/.test(p) ? p.slice(1) : '*' + p));
+    terms.push(ln.kind === 'use' ? srcRef_(ln, b.sheetName) + portionExpr_(p) : colLetter_(b.amountCol) + rows[i] + portionExpr_(p));
   });
   var totalF = terms.length ? '=' + terms.join('+') : '=0';
   var days = dayRows_(sh, sp);
@@ -261,6 +272,18 @@ function write_(b) {
       if (miss.length) return { error: 'no_split_col', names: miss };
     }
 
+    /* Món dùng tiếp đồ dư: dòng món gốc phải còn đúng chỗ */
+    for (var u = 0; u < lines.length; u++) {
+      var ln0 = lines[u];
+      if (ln0.kind !== 'use') continue;
+      var ssh = ss.getSheetByName(ln0.srcSheet);
+      var sblk = ssh && findBlock_(ssh);
+      if (!sblk) return { error: 'src_changed', desc: ln0.desc };
+      var got = String(ssh.getRange(Number(ln0.srcRow), sblk.col + 1).getDisplayValue()).trim();
+      if (norm_(got) !== norm_(ln0.srcDesc)) return { error: 'src_changed', desc: ln0.desc, row: ln0.srcRow };
+      ln0.srcAmountCol = sblk.col + 3;
+    }
+
     /* Dòng đã ghi lần trước: kiểm tra cột Mô tả còn đúng thì ghi đè lên đó */
     var reuse = [];
     var prev = b.prev;
@@ -272,7 +295,12 @@ function write_(b) {
         if (norm_(cur) !== norm_(prev.descs && prev.descs[i])) return { error: 'prev_changed', row: row };
       }
       reuse = prev.rows.map(Number);
-      reuse.forEach(function (r) { sh.getRange(r, col, 1, 6).clearContent(); });
+      reuse.forEach(function (r) {
+        sh.getRange(r, col, 1, 6).clearContent();
+        /* cột kế Ngày: chỉ xoá công thức "phần dùng" do app ghi */
+        var hc = sh.getRange(r, col + 6);
+        if (/^=('[^']*'!)?[A-Z]+\d+([*/][\d/]+)?$/.test(hc.getFormula())) hc.clearContent();
+      });
     }
 
     /* Dòng cuối cùng còn dữ liệu trong 6 cột */
@@ -301,11 +329,13 @@ function write_(b) {
         asText_(ln.left),
         date
       ]]);
+      /* dùng tiếp đồ dư: Số tiền để trống (đã tính ở ngày mua), cột kế Ngày ghi giá trị phần dùng */
+      if (ln.kind === 'use') sh.getRange(row, col + 6).setFormula('=' + srcRef_(ln, b.sheet) + portionExpr_(ln.portion));
       rows.push(row);
     });
     var split = null;
     if (sp) split = writeSplit_(sh, sp, { participants: b.participants, lines: lines, date: b.date || lines[0].date,
-      prevSplit: !b.force && b.prev ? b.prev.split : null, amountCol: col + 3 }, rows, buyers, tz);
+      prevSplit: !b.force && b.prev ? b.prev.split : null, amountCol: col + 3, sheetName: b.sheet }, rows, buyers, tz);
     SpreadsheetApp.flush();
     var descs = rows.map(function (r) { return String(sh.getRange(r, col + 1).getDisplayValue()).trim(); });
     return { ok: true, sheet: b.sheet, rows: rows, descs: descs, split: split };

@@ -100,7 +100,10 @@ Thanh menu dưới cùng:
 - **Note** — ghi chú chi tiêu (ví dụ "Ăn trưa 18/10"), chọn người tham gia. Nút
   **Nhập chi tiêu** mở màn hình nhập từng món giống sheet: Người mua, Mô tả, SL, Số tiền
   (chỉ nhận số), Dư lại, Tính vào chia (cả món, ½, ⅓…, không tính). Lưu note là lưu luôn các món. Note có món thì có nút
-  **Đồng bộ** để ghi lên tab tuần (các món và một dòng trong bảng chia tiền); app tự chọn tab theo ngày. Lọc theo người để xem phần mình. Mỗi note một thẻ, ghi số
+  **Đồng bộ** để ghi lên tab tuần (các món và một dòng trong bảng chia tiền); app tự chọn tab theo ngày. Nút **↳ Dùng đồ dư** trong màn hình nhập lấy
+  lại phần còn dư của món ở note trước (món có "Tính vào chia" nhỏ hơn cả món), chọn dùng hết
+  hoặc một phần; app không cho dùng quá phần còn lại, và không cho xoá note gốc khi đồ dư của
+  nó đang được dùng. Lọc theo người để xem phần mình. Mỗi note một thẻ, ghi số
   người tham gia. Chế độ **Lịch** theo tháng hiện số note và số người mỗi ngày. Lưu vào MongoDB.
 
 Màu của từng người lấy theo màu nền tên trong sheet (bảng tổng hợp cuối tab tuần),

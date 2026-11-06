@@ -42,3 +42,16 @@ Phiên bản: Phiên bản mới → Triển khai**. Làm vậy thì URL đượ
     ngay trên dòng tổng `=SUM(J4:J17)`, vùng SUM được kéo thêm dòng mới.
   - Đồng bộ lại: tìm đúng dòng cũ theo công thức Tổng cộng và ghi đè.
   - Người tham gia không có cột trong bảng chia thì script dừng, không ghi gì.
+
+## Dùng tiếp đồ dư
+
+Món mua hôm trước chỉ tính một phần vào chia (ví dụ Bí đỏ 30.000, "Tính vào chia" ½),
+hôm sau dùng tiếp phần còn lại:
+
+- Script ghi một dòng mới ngày hôm sau: `↳ Bí đỏ (dư 23/10)`, **Số tiền để trống** (tiền đã
+  tính ở ngày mua), Dư lại ghi `hết` hoặc `còn ¼`.
+- Cột ngay sau cột Ngày (cột H) của dòng đó là công thức trỏ về ô Số tiền gốc, ví dụ `=E43/2`.
+  Món gốc ở tab khác thì có tên tab: `='8.10-15.10'!E43/2`.
+- Tổng cộng của ngày dùng tiếp cũng cộng `E43/2`. Tổng các ngày không vượt quá giá món.
+- Trước khi ghi, script kiểm tra dòng món gốc còn đúng chỗ (cột Mô tả khớp); không khớp thì dừng.
+
