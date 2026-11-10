@@ -56,8 +56,8 @@ Phiên bản: Phiên bản mới → Triển khai**. Làm vậy thì URL đượ
 
 Chèn một cột mới ngay sau cột H (Insert column → cột I mới, bảng chia tiền dời sang phải). Từ lần
 đồng bộ sau, script ghi vào cột đó số người và một chấm tròn cho mỗi người, ví dụ `4 ●●●●`, kèm
-tiêu đề "Chia". Mỗi chấm tô màu chữ theo **màu của người đó trên app** (app gửi kèm khi đồng bộ),
-đậm hơn một chút để nhìn rõ trên nền trắng. Nếu thiếu, script lấy màu nền ô tên người trong sheet.
+tiêu đề "Chia". Mỗi chấm tô **đúng màu nền ô tên người đó trên sheet** (chấm cỡ 14 để màu nhạt
+vẫn thấy rõ). Người nào không có ô tên tô màu trong tab thì dùng màu của người đó trên app.
 
 - Script chỉ ghi khi ô tiêu đề cột đó (cùng hàng "Người mua") đang trống hoặc là "Chia", và cột đó
   không phải cột Ngày của bảng chia tiền. Chưa chèn cột thì script bỏ qua, không ghi gì.

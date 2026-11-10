@@ -228,29 +228,18 @@ function personColors_(sh) {
   }
   return out;
 }
-/* màu đậm cùng tông với màu nền của tên (màu nền thường rất nhạt, in chữ lên trắng sẽ không thấy) */
-function strongColor_(hex) {
-  var c = hexToHsl_(hex);
-  if (!c || c.s < 0.12) return '#64748b';
-  var s = Math.max(c.s, 0.7), l = 0.45, h = c.h / 360;
-  var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
-  var f = function (t) {
-    t = (t + 1) % 1;
-    var v = t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p;
-    var x = Math.round(v * 255).toString(16);
-    return x.length < 2 ? '0' + x : x;
-  };
-  return '#' + f(h + 1 / 3) + f(h) + f(h - 1 / 3);
-}
+/* Màu của người: đúng màu nền ô tên người đó trên sheet (ô ghép "A.Phú + C.Vân" thì cả hai
+   cùng màu ô đó). Không có ô nào thì mới dùng màu app gửi. */
 function personColor_(p, colors) {
-  for (var i = 0; i < colors.length; i++) if (colors[i].sent && samePerson_(colors[i].name, p)) return colors[i].color;
   var best = null, bs = -1;
   colors.forEach(function (c) {
-    if (!samePerson_(c.name, p)) return;
+    if (c.sent || !samePerson_(c.name, p)) return;
     var hsl = hexToHsl_(c.color), sat = hsl ? hsl.s : 0;
     if (sat > bs) { bs = sat; best = c.color; }
   });
-  return best;
+  if (best) return best;
+  for (var i = 0; i < colors.length; i++) if (colors[i].sent && samePerson_(colors[i].name, p)) return colors[i].color;
+  return null;
 }
 /* "4 ●●●●" — mỗi chấm tô đúng màu của người đó (chữ màu, không dùng emoji nên máy nào cũng thấy màu) */
 function chiaRich_(people, sp, colors, suffix) {
@@ -267,7 +256,8 @@ function chiaRich_(people, sp, colors, suffix) {
   var rt = SpreadsheetApp.newRichTextValue().setText(text);
   list.forEach(function (p, i) {
     var hex = personColor_(p, colors);
-    var st = SpreadsheetApp.newTextStyle().setForegroundColor(hex ? strongColor_(hex) : '#94a3b8').build();
+    /* đúng màu trên sheet; chấm to hơn chữ để màu nhạt vẫn nhìn rõ */
+    var st = SpreadsheetApp.newTextStyle().setForegroundColor(hex || '#94a3b8').setFontSize(14).build();
     rt.setTextStyle(head.length + i, head.length + i + 1, st);
   });
   return rt.build();
@@ -490,7 +480,7 @@ function write_(b) {
 
     var buyers = buyerList_(sh, top, col);
     var people = (b.participants || []).map(function (p) { return matchBuyer_(p, buyers); });
-    /* màu: ưu tiên màu app gửi (giống màu trên app), sau đó mới tới màu nền tên trong sheet */
+    /* màu: lấy theo màu nền ô tên người trên sheet; thiếu thì dùng màu app gửi */
     var pcolors = [];
     if (people.length && chiaCol > 0) {
       var sent = b.colors || {};
