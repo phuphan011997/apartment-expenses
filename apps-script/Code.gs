@@ -209,8 +209,8 @@ function lineNote_(b, ln, names) {
   if (pt) out.push(pt);
   return out.join('\n');
 }
-/* ---- Cột "Chia" (cột H, ngay sau Ngày): số người + chấm tròn tô màu theo màu tên người trong sheet,
-   ví dụ "4 ●●●●". Món dùng tiếp đồ dư ghi thêm " · dùng 15.000" (giá trị phần dùng). ---- */
+/* ---- Cột "Chia" (cột I, bạn chèn thêm sau cột H): số người + chấm tròn tô màu theo màu tên
+   người trong sheet, ví dụ "4 ●●●●". ---- */
 function hexToHsl_(hex) {
   var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(hex || ''));
   if (!m) return null;
@@ -279,26 +279,18 @@ function chiaRich_(people, sp, colors, suffix) {
   });
   return rt.build();
 }
-function fmtVnd_(n) { return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-/* giá trị phần dùng của đồ dư = Số tiền món gốc × phần dùng */
-function useValue_(ss, ln) {
-  var sh = ss.getSheetByName(ln.srcSheet);
-  var v = sh ? Number(sh.getRange(Number(ln.srcRow), ln.srcAmountCol).getValue()) || 0 : 0;
-  var m = /^(\d+)(?:\/(\d+))?$/.exec(String(ln.portion || '1'));
-  return m ? v * Number(m[1]) / (m[2] ? Number(m[2]) : 1) : v;
-}
-/* bản trước ghi cột Chia ở cột A: dọn đi */
-function cleanOldChiaA_(sh, blk, top) {
-  if (blk.col < 2) return;
-  var a = blk.col - 1, hdr = sh.getRange(blk.headerRow, a);
+/* Các bản trước từng ghi cột Chia ở cột A, rồi ở cột H: dọn chữ "Chia" và các ô "4 ●●●●" đi.
+   Ô H có công thức (đồ dư) hoặc số gõ tay thì giữ nguyên. */
+var CHIA_RE_ = /^\d+ [\u2B24\u25CF\uD83C\uD83D\uDFE0-\uDFEB\u26AA\u26AB]+/;
+function cleanOldChia_(sh, blk, top, a) {
+  if (a < 1) return;
+  var hdr = sh.getRange(blk.headerRow, a);
   if (norm_(hdr.getDisplayValue()) !== 'chia') return;
   hdr.clearContent();
   var n = Math.max(sh.getLastRow() - top + 1, 0);
   if (!n) return;
-  var rg = sh.getRange(top, a, n, 1), v = rg.getDisplayValues();
-  for (var i = 0; i < n; i++) {
-    if (/^\d+ [\u2B24\u25CF\uD83C\uD83D\uDFE0-\uDFEB\u26AA\u26AB]+/.test(v[i][0])) sh.getRange(top + i, a).clearContent();
-  }
+  var v = sh.getRange(top, a, n, 1).getDisplayValues();
+  for (var i = 0; i < n; i++) if (CHIA_RE_.test(v[i][0])) sh.getRange(top + i, a).clearContent();
 }
 
 function setNote_(range, text) { try { range.setNote(text); } catch (e) {} }
@@ -441,9 +433,16 @@ function write_(b) {
     /* Chèn/xoá ô chỉ trong khối mua hàng (Người mua … cột kế Ngày), bảng chia bên phải
        đứng yên. Google tự sửa các công thức trỏ tới ô bị dời. */
     /* cột Chia = cột ngay sau Ngày (H) */
-    var chiaCol = col + 6, c0 = col;
-    var WIDTH = 7, shifts = [];
-    cleanOldChiaA_(sh, blk, top);
+    /* cột Chia: cột ngay sau cột H (cột I) do bạn chèn thêm, tiêu đề trống hoặc "Chia".
+       Không dùng khi cột đó thuộc bảng chia tiền (chưa chèn cột mới). */
+    cleanOldChia_(sh, blk, top, col - 1);
+    cleanOldChia_(sh, blk, top, col + 6);
+    var chiaCol = col + 7;
+    var chiaHdr = norm_(sh.getRange(blk.headerRow, chiaCol).getDisplayValue());
+    var spx = sp || findSplit_(sh, col + 5);
+    if (!(chiaHdr === '' || chiaHdr === 'chia') || (spx && chiaCol >= spx.dayCol)) chiaCol = -1;
+    var c0 = col;
+    var WIDTH = chiaCol > 0 ? 8 : 7, shifts = [];
     var ensureRows = function (n) {
       var need = Math.max(last, top) + n + 1;
       if (need > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), need - sh.getMaxRows());
@@ -464,7 +463,10 @@ function write_(b) {
     if (reuse.length) {
       /* đồng bộ lại: giữ chỗ cũ; bớt món thì xoá dòng thừa, thêm món thì chèn ngay sau dòng cuối của note */
       reuse.forEach(function (r) {
-        sh.getRange(r, col, 1, 7).clearContent();
+        sh.getRange(r, col, 1, 6).clearContent();
+        var hc = sh.getRange(r, col + 6);
+        if (/^=('[^']*'!)?[A-Z]+\d+([*/][\d/]+)?$/.test(hc.getFormula())) hc.clearContent();
+        if (chiaCol > 0) sh.getRange(r, chiaCol).clearContent();
       });
       if (k < reuse.length) {
         reuse.slice(k).sort(function (a, b2) { return b2 - a; }).forEach(function (r) { del(mapRow_(r, shifts), 1); });
@@ -495,8 +497,8 @@ function write_(b) {
 
     var buyers = buyerList_(sh, top, col);
     var people = (b.participants || []).map(function (p) { return matchBuyer_(p, buyers); });
-    var pcolors = people.length ? personColors_(sh) : [];
-    if (people.length) {
+    var pcolors = people.length && chiaCol > 0 ? personColors_(sh) : [];
+    if (people.length && chiaCol > 0) {
       var hc = sh.getRange(blk.headerRow, chiaCol);
       if (!hc.getDisplayValue()) hc.setValue('Chia');
     }
@@ -516,10 +518,10 @@ function write_(b) {
       ]]);
       /* ghi chú ở ô Số tiền: món này chia cho ai, bao nhiêu người */
       if (people.length) setNote_(sh.getRange(row, col + 3), lineNote_(b, ln, people));
-      /* cột Chia: số người + chấm màu; món dùng tiếp đồ dư ghi thêm giá trị phần dùng
-         (Số tiền để trống vì tiền đã tính ở ngày mua) */
-      var suffix = ln.kind === 'use' ? ' · dùng ' + fmtVnd_(useValue_(ss, ln)) : '';
-      if (people.length || suffix) sh.getRange(row, chiaCol).setRichTextValue(chiaRich_(people, sp, pcolors, suffix));
+      /* dùng tiếp đồ dư: Số tiền để trống (đã tính ở ngày mua), cột H ghi giá trị phần dùng */
+      if (ln.kind === 'use') sh.getRange(row, col + 6).setFormula('=' + srcRef_(ln, b.sheet) + portionExpr_(ln.portion));
+      /* cột Chia: số người + chấm tô màu theo tên */
+      if (chiaCol > 0 && people.length) sh.getRange(row, chiaCol).setRichTextValue(chiaRich_(people, sp, pcolors, ''));
     });
     var split = null;
     if (sp) split = writeSplit_(sh, sp, { participants: b.participants, people: people, title: b.title, lines: lines, date: b.date || lines[0].date,

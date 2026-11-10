@@ -58,19 +58,18 @@ Mỗi lần đồng bộ, script gắn **ghi chú (note)** vào ô, không thêm
 Ô có ghi chú hiện tam giác đen nhỏ ở góc. Trên máy tính rê chuột vào ô để xem; trên điện thoại
 chạm vào ô. Đồng bộ lại thì ghi chú được viết lại theo note mới.
 
-## Cột Chia (cột H)
+## Cột Chia (cột I, bạn tự chèn)
 
-Cột ngay sau cột Ngày (cột H) là cột **Chia**: mỗi món ghi số người và một chấm tròn cho mỗi
-người, ví dụ `4 ●●●●`. Mỗi chấm tô màu chữ theo màu tên người đó trong sheet (đậm hơn màu nền để
-nhìn rõ trên nền trắng), nên máy nào, ứng dụng nào cũng thấy màu.
+Chèn một cột mới ngay sau cột H (Insert column → cột I mới, bảng chia tiền dời sang phải). Từ lần
+đồng bộ sau, script ghi vào cột đó số người và một chấm tròn cho mỗi người, ví dụ `4 ●●●●`, kèm
+tiêu đề "Chia". Mỗi chấm tô màu chữ theo màu tên người đó trong sheet (đậm hơn màu nền để nhìn rõ).
 
-- Màu lấy theo màu nền ô có tên người trong tab (tiêu đề bảng chia tiền, bảng tổng hợp…). Ô ghép
-  "A.Phú + C.Vân" tô vàng thì cả hai người là chấm vàng. Muốn mỗi người một màu riêng, tô màu ô
-  tên riêng của người đó ở đâu đó trong tab; script lấy màu đậm nhất.
-- Chấm xếp theo thứ tự cột trong bảng chia tiền. Script tự ghi tiêu đề "Chia".
-- Món dùng tiếp đồ dư ghi thêm giá trị phần dùng: `2 ●● · dùng 15.000`. App đọc số này để tính
-  thanh toán.
-- Bản trước ghi cột Chia ở cột A: lần đồng bộ tới script tự dọn cột A.
+- Script chỉ ghi khi ô tiêu đề cột đó (cùng hàng "Người mua") đang trống hoặc là "Chia", và cột đó
+  không phải cột Ngày của bảng chia tiền. Chưa chèn cột thì script bỏ qua, không ghi gì.
+- Màu lấy theo màu nền ô có tên người trong tab; ô ghép "A.Phú + C.Vân" thì cả hai cùng màu.
+  Muốn mỗi người một màu riêng, tô màu ô tên riêng của người đó; script lấy màu đậm nhất.
+- Cột H giữ như cũ (đồ dư dùng tiếp ghi công thức phần dùng ở đây).
+- Dấu vết "Chia" của các bản trước ở cột A hoặc cột H được tự dọn.
 
 ## Dùng tiếp đồ dư
 
@@ -79,7 +78,8 @@ hôm sau dùng tiếp phần còn lại:
 
 - Script ghi một dòng mới ngày hôm sau: `↳ Bí đỏ (dư 23/10)`, **Số tiền để trống** (tiền đã
   tính ở ngày mua), Dư lại ghi `hết` hoặc `còn ¼`.
-- Cột Chia (H) của dòng đó ghi giá trị phần dùng, ví dụ `2 ●● · dùng 15.000`.
+- Cột ngay sau cột Ngày (cột H) của dòng đó là công thức trỏ về ô Số tiền gốc, ví dụ `=E43/2`.
+  Món gốc ở tab khác thì có tên tab: `='8.10-15.10'!E43/2`.
 - Tổng cộng của ngày dùng tiếp cũng cộng `E43/2`. Tổng các ngày không vượt quá giá món.
 - Trước khi ghi, script kiểm tra dòng món gốc còn đúng chỗ (cột Mô tả khớp); không khớp thì dừng.
 
