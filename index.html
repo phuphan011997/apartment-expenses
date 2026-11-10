@@ -397,6 +397,8 @@ body.lock{overflow:hidden}
 .ef label{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin:0 0 4px}
 .ef .calc{display:block;font-size:11.5px;color:var(--muted);font-family:var(--font-num);margin-top:3px;min-height:1em}
 .addnote{width:100%;padding:13px;font-size:15px}
+.mtoggle{display:flex;align-items:center;justify-content:center;gap:6px}
+.mtoggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .mrow .main{min-width:0}
 .mrow .nm{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .mdot{width:22px;height:22px;border-radius:99px;border:1px solid color-mix(in srgb,var(--pc) 60%,#000);background:var(--pc);padding:0;cursor:pointer;flex:none}
@@ -2989,8 +2991,13 @@ function viewItems(){
     h += '<button class="btn more" data-act="loadMore"' + (L.loadingMore ? " disabled" : "") + '>' + (L.loadingMore ? "Đang tải…" : "Tải note cũ hơn") + '</button>';
   }
 
-  /* quản lý người */
-  h += '<div class="card"><div class="ttl"><h2>Người trong nhà</h2><em>' + L.members.length + ' người</em></div><div class="rows">' +
+  /* quản lý người: ẩn sau một nút, bấm mới hiện */
+  if(!L.showMembers){
+    return h + '<button class="btn more mtoggle" data-act="members" aria-expanded="false">Người trong nhà · ' + L.members.length +
+      ' người<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"></path></svg></button></div>';
+  }
+  h += '<div class="card" id="membersCard"><div class="ttl"><h2>Người trong nhà</h2>' +
+    '<button class="lnk" data-act="members" aria-expanded="true">Thu gọn</button></div><div class="rows">' +
     L.members.map(function(m){
       var armed = L.delArm === "m:" + m.id;
       var open = L.colorFor === m.id;
@@ -3040,6 +3047,12 @@ function wireItems(){
       tokenSet(t.trim()); L.msg = ""; return ledgerLoad();
     }
     if(act === "seed") return addMembers(sheetNames());
+    if(act === "members"){
+      L.showMembers = !L.showMembers; L.colorFor = ""; render();
+      var mc = document.getElementById("membersCard");
+      if(mc) mc.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      return;
+    }
     if(act === "colorPick"){ L.colorFor = L.colorFor === id ? "" : id; return render(); }
     if(act === "setColor"){ L.colorFor = ""; setMemberColor(id, b.dataset.c); return; }
     if(act === "addMember"){
