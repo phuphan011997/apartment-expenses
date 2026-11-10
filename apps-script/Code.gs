@@ -209,6 +209,68 @@ function lineNote_(b, ln, names) {
   if (pt) out.push(pt);
   return out.join('\n');
 }
+/* ---- Cột "Chia": số người + chấm tròn màu theo màu tên người trong sheet, ví dụ "4 🟡🟢🔵🟣".
+   Nằm ở cột trống ngay bên trái "Người mua" (cột A), nên không đụng cột nào đang dùng. ---- */
+function hexToHsl_(hex) {
+  var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(hex || ''));
+  if (!m) return null;
+  var r = parseInt(m[1], 16) / 255, g = parseInt(m[2], 16) / 255, b = parseInt(m[3], 16) / 255;
+  var mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn, h = 0, s = 0;
+  if (d) {
+    s = d / (1 - Math.abs(2 * l - 1));
+    h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    h = (h * 60 + 360) % 360;
+  }
+  return { h: h, s: s, l: l };
+}
+/* màu nền -> chấm tròn emoji gần nhất */
+function dotFor_(hex) {
+  var c = hexToHsl_(hex);
+  if (!c || (c.s < 0.15 && c.l > 0.85)) return '⚪';
+  if (c.s < 0.15) return c.l < 0.3 ? '⚫' : '⚪';
+  var h = c.h;
+  if (h < 15 || h >= 340) return '🔴';
+  if (h < 40) return c.l < 0.35 ? '🟤' : '🟠';
+  if (h < 70) return '🟡';
+  if (h < 170) return '🟢';
+  if (h < 250) return '🔵';
+  return '🟣';
+}
+/* Màu của từng người: lấy màu nền ô có tên người đó trong sheet (cột chia tiền, bảng tổng hợp…).
+   Ô ghép "Tân + Xuyến" tô màu thì cả hai người cùng màu đó. */
+function personColors_(sh) {
+  var rows = Math.min(sh.getLastRow(), 80), cols = Math.min(sh.getLastColumn(), 30);
+  if (rows < 1 || cols < 1) return [];
+  var rg = sh.getRange(1, 1, rows, cols), v = rg.getDisplayValues(), bg = rg.getBackgrounds(), out = [];
+  for (var r = 0; r < rows; r++) for (var c = 0; c < cols; c++) {
+    var t = String(v[r][c] || '').trim(), col = String(bg[r][c] || '').toLowerCase();
+    if (!t || t.length > 40 || !col || col === '#ffffff' || /\d{3}/.test(t)) continue;
+    t.split('+').forEach(function (part) { if (personKey_(part)) out.push({ name: part.trim(), color: col }); });
+  }
+  return out;
+}
+function chiaText_(people, sp, colors) {
+  if (!people.length) return '';
+  var order = function (p) {
+    if (!sp) return 0;
+    for (var i = 0; i < sp.people.length; i++) {
+      if (sp.people[i].name.split('+').some(function (x) { return samePerson_(x, p); })) return i;
+    }
+    return 99;
+  };
+  var dots = people.slice().sort(function (a, b) { return order(a) - order(b); }).map(function (p) {
+    /* một người có thể xuất hiện ở nhiều ô màu: lấy màu đậm nhất (bỏ qua ô tiêu đề xám) */
+    var best = null, bs = -1;
+    colors.forEach(function (c) {
+      if (!samePerson_(c.name, p)) return;
+      var hsl = hexToHsl_(c.color), sat = hsl ? hsl.s : 0;
+      if (sat > bs) { bs = sat; best = c.color; }
+    });
+    return best ? dotFor_(best) : '⚪';
+  });
+  return people.length + ' ' + dots.join('');
+}
+
 function setNote_(range, text) { try { range.setNote(text); } catch (e) {} }
 
 function writeSplit_(sh, sp, b, rows, buyers, tz) {
@@ -348,20 +410,23 @@ function write_(b) {
 
     /* Chèn/xoá ô chỉ trong khối mua hàng (Người mua … cột kế Ngày), bảng chia bên phải
        đứng yên. Google tự sửa các công thức trỏ tới ô bị dời. */
-    var WIDTH = 7, shifts = [];
+    /* cột Chia ở bên trái Người mua, nếu còn trống (hoặc đã là cột Chia) */
+    var chiaCol = col > 1 && /^(|chia)$/.test(norm_(sh.getRange(blk.headerRow, col - 1).getDisplayValue())) ? col - 1 : -1;
+    var c0 = chiaCol > 0 ? chiaCol : col;
+    var WIDTH = 7 + (col - c0), shifts = [];
     var ensureRows = function (n) {
       var need = Math.max(last, top) + n + 1;
       if (need > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), need - sh.getMaxRows());
     };
     var ins = function (at, n) {
       ensureRows(n);
-      sh.getRange(at, col, n, WIDTH).insertCells(SpreadsheetApp.Dimension.ROWS);
-      shifts.push({ at: at, n: n, c1: col, c2: col + WIDTH - 1 });
+      sh.getRange(at, c0, n, WIDTH).insertCells(SpreadsheetApp.Dimension.ROWS);
+      shifts.push({ at: at, n: n, c1: c0, c2: c0 + WIDTH - 1 });
       last += n;
     };
     var del = function (at, n) {
-      sh.getRange(at, col, n, WIDTH).deleteCells(SpreadsheetApp.Dimension.ROWS);
-      shifts.push({ at: at, n: -n, c1: col, c2: col + WIDTH - 1 });
+      sh.getRange(at, c0, n, WIDTH).deleteCells(SpreadsheetApp.Dimension.ROWS);
+      shifts.push({ at: at, n: -n, c1: c0, c2: c0 + WIDTH - 1 });
       last -= n;
     };
 
@@ -370,6 +435,7 @@ function write_(b) {
       /* đồng bộ lại: giữ chỗ cũ; bớt món thì xoá dòng thừa, thêm món thì chèn ngay sau dòng cuối của note */
       reuse.forEach(function (r) {
         sh.getRange(r, col, 1, 6).clearContent();
+        if (chiaCol > 0) sh.getRange(r, chiaCol).clearContent();
         var hc = sh.getRange(r, col + 6);
         if (/^=('[^']*'!)?[A-Z]+\d+([*/][\d/]+)?$/.test(hc.getFormula())) hc.clearContent();
       });
@@ -402,6 +468,12 @@ function write_(b) {
 
     var buyers = buyerList_(sh, top, col);
     var people = (b.participants || []).map(function (p) { return matchBuyer_(p, buyers); });
+    var chia = '';
+    if (chiaCol > 0 && people.length) {
+      chia = chiaText_(people, sp, personColors_(sh));
+      var hc = sh.getRange(blk.headerRow, chiaCol);
+      if (!hc.getDisplayValue()) hc.setValue('Chia');
+    }
     lines.forEach(function (ln, idx) {
       var row = rows[idx];
       if (row > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), row - sh.getMaxRows());
@@ -420,6 +492,7 @@ function write_(b) {
       if (ln.kind === 'use') sh.getRange(row, col + 6).setFormula('=' + srcRef_(ln, b.sheet) + portionExpr_(ln.portion));
       /* ghi chú ở ô Số tiền: món này chia cho ai, bao nhiêu người */
       if (people.length) setNote_(sh.getRange(row, col + 3), lineNote_(b, ln, people));
+      if (chia) sh.getRange(row, chiaCol).setValue(chia);
     });
     var split = null;
     if (sp) split = writeSplit_(sh, sp, { participants: b.participants, people: people, title: b.title, lines: lines, date: b.date || lines[0].date,

@@ -58,6 +58,18 @@ Mỗi lần đồng bộ, script gắn **ghi chú (note)** vào ô, không thêm
 Ô có ghi chú hiện tam giác đen nhỏ ở góc. Trên máy tính rê chuột vào ô để xem; trên điện thoại
 chạm vào ô. Đồng bộ lại thì ghi chú được viết lại theo note mới.
 
+## Cột Chia (chấm màu)
+
+Cột trống ngay bên trái "Người mua" (thường là cột A) được dùng làm cột **Chia**: mỗi món ghi số
+người và một chấm tròn màu cho mỗi người, ví dụ `4 🟢🟡🟡🔵`.
+
+- Màu của từng người lấy theo màu nền ô có tên người đó trong sheet (tiêu đề bảng chia tiền,
+  bảng tổng hợp…). Ô ghép như "A.Phú + C.Vân" tô vàng thì cả hai người là 🟡. Muốn mỗi người một
+  màu riêng, tô màu ô tên riêng của người đó ở đâu đó trong tab; script lấy màu đậm nhất.
+- Chấm xếp theo thứ tự cột trong bảng chia tiền.
+- Chỉ ghi khi ô tiêu đề của cột đó đang trống hoặc là "Chia"; script tự ghi tiêu đề "Chia".
+- Cột này dời cùng dòng món khi chèn hoặc xoá dòng.
+
 ## Dùng tiếp đồ dư
 
 Món mua hôm trước chỉ tính một phần vào chia (ví dụ Bí đỏ 30.000, "Tính vào chia" ½),
