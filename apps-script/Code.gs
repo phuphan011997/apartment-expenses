@@ -228,6 +228,21 @@ function personColors_(sh) {
   }
   return out;
 }
+/* Đậm màu lên nhưng giữ đúng tông (màu tên trên sheet thường rất nhạt, chấm nhỏ sẽ khó thấy) */
+function deepen_(hex) {
+  var c = hexToHsl_(hex);
+  if (!c) return hex;
+  if (c.s < 0.15) return '#80868b';
+  var s = Math.max(c.s, 0.6), l = Math.min(c.l, 0.6), h = c.h / 360;
+  var q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  var f = function (t) {
+    t = (t + 1) % 1;
+    var v = t < 1 / 6 ? p + (q - p) * 6 * t : t < 1 / 2 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p;
+    var x = Math.round(v * 255).toString(16);
+    return x.length < 2 ? '0' + x : x;
+  };
+  return '#' + f(h + 1 / 3) + f(h) + f(h - 1 / 3);
+}
 /* Màu của người: màu bạn chọn cho người đó trong app (Note → Người trong nhà) nếu có;
    không thì đúng màu nền ô tên người đó trên sheet (ô ghép "A.Phú + C.Vân" thì cả hai cùng màu). */
 function personColor_(p, colors) {
@@ -255,8 +270,8 @@ function chiaRich_(people, sp, colors, suffix) {
   var rt = SpreadsheetApp.newRichTextValue().setText(text);
   list.forEach(function (p, i) {
     var hex = personColor_(p, colors);
-    /* đúng màu trên sheet; chấm to hơn chữ để màu nhạt vẫn nhìn rõ */
-    var st = SpreadsheetApp.newTextStyle().setForegroundColor(hex || '#94a3b8').setFontSize(18).build();
+    /* cùng tông màu với tên, đậm hơn; chấm to và đậm để nhìn rõ */
+    var st = SpreadsheetApp.newTextStyle().setForegroundColor(hex ? deepen_(hex) : '#94a3b8').setFontSize(24).setBold(true).build();
     rt.setTextStyle(head.length + i, head.length + i + 1, st);
   });
   return rt.build();
