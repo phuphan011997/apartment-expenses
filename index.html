@@ -747,6 +747,16 @@ function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, function(
 
 /* ---------- ô dữ liệu đã chuẩn hoá: null | {t:'n'|'d'|'s', v, f} ---------- */
 function txt(c){ return c && c.f != null ? String(c.f).replace(/\s+/g, " ").trim() : ""; }
+/* Cột sau Ngày (H): số tiền phần dư ghi tay, hoặc cột "Chia" do app ghi ("4 ●●●●",
+   "2 ●● · dùng 15.000" cho món dùng tiếp đồ dư). Chỉ lấy số ở hai trường hợp đó. */
+function leftNum(c){
+  if(!c) return null;
+  if(c.t === "n") return c.v;
+  var t = String(c.f || c.v || "");
+  var m = /d[uù]ng\s+([\d.,]+)/i.exec(t);
+  if(m) return num({ f: m[1] });
+  return /^[\s\d.,]+(đ|d)?$/i.test(t.trim()) ? num(c) : null;
+}
 function num(c){
   if(!c) return null;
   if(c.t === "n") return c.v;
@@ -876,7 +886,7 @@ function parseLedger(g, labels){
       amount: num(cell(g, r, col.amount)),
       date: pdate(cell(g, r, col.date)),
       leftQty: txt(cell(g, r, col.leftQty)),
-      leftVal: num(cell(g, r, col.leftVal))
+      leftVal: leftNum(cell(g, r, col.leftVal))
     });
   }
 
