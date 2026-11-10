@@ -394,7 +394,7 @@ module.exports = async (req, res) => {
         const prev = it.sync && it.sync.sheet === sheet
           ? { rows: it.sync.rows, descs: it.sync.descs, split: it.sync.split ? it.sync.split.formula : null } : null;
         const r = await callScript({
-          action: "write", sheet, prev, force: !!b.force, date: it.date,
+          action: "write", sheet, prev, force: !!b.force, date: it.date, title: it.title,
           participants: it.participants.map(nameOf).filter(Boolean),
           lines: it.lines.map((l) => (l.kind === "use"
             ? { kind: "use", buyer: nameOf(l.buyer), desc: "↳ " + l.desc + " (dư " + dm(l.srcDate) + ")", qty: "", amount: null,

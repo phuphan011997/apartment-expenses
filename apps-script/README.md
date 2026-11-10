@@ -47,6 +47,17 @@ Phiên bản: Phiên bản mới → Triển khai**. Làm vậy thì URL đượ
   - Đồng bộ lại: tìm đúng dòng cũ theo công thức Tổng cộng và ghi đè.
   - Người tham gia không có cột trong bảng chia thì script dừng, không ghi gì.
 
+## Ghi chú chia cho ai
+
+Mỗi lần đồng bộ, script gắn **ghi chú (note)** vào ô, không thêm chữ vào bảng:
+
+- Ô **Số tiền** của từng món: tên note, ngày, `Chia 4 người: Chị La, Anh Phú, Chị Vân, Anh Tân`,
+  và `Tính vào chia ½ món` nếu món chỉ tính một phần.
+- Ô **Tổng cộng** của dòng chia tiền: tên note, ngày, danh sách người, số món.
+
+Ô có ghi chú hiện tam giác đen nhỏ ở góc. Trên máy tính rê chuột vào ô để xem; trên điện thoại
+chạm vào ô. Đồng bộ lại thì ghi chú được viết lại theo note mới.
+
 ## Dùng tiếp đồ dư
 
 Món mua hôm trước chỉ tính một phần vào chia (ví dụ Bí đỏ 30.000, "Tính vào chia" ½),

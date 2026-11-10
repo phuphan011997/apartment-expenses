@@ -190,6 +190,27 @@ function mapRow_(r, shifts) {
   return r;
 }
 
+/* Ghi chú (note) gắn vào ô: góc ô có tam giác nhỏ, rê chuột / chạm vào ô để xem.
+   Không thêm chữ vào ô nên bảng vẫn gọn, công thức không bị ảnh hưởng. */
+var PORTION_LABEL_ = { '1/2': '½', '1/3': '⅓', '2/3': '⅔', '1/4': '¼', '3/4': '¾' };
+function portionText_(p) {
+  p = String(p || '1');
+  if (p === '1') return '';
+  if (p === '0') return 'Không tính vào chia';
+  return 'Tính vào chia ' + (PORTION_LABEL_[p] || p) + ' món';
+}
+function dayLabel_(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : ''; }
+function peopleText_(names) { return 'Chia ' + names.length + ' người: ' + names.join(', '); }
+function lineNote_(b, ln, names) {
+  var out = [(b.title || 'Note') + (b.date ? ' · ' + dayLabel_(b.date) : '')];
+  if (ln.kind === 'use') out.push('Dùng tiếp đồ dư, phần dùng ' + (PORTION_LABEL_[ln.portion] || ln.portion) + ' món gốc');
+  out.push(peopleText_(names));
+  var pt = ln.kind === 'use' ? '' : portionText_(ln.portion);
+  if (pt) out.push(pt);
+  return out.join('\n');
+}
+function setNote_(range, text) { try { range.setNote(text); } catch (e) {} }
+
 function writeSplit_(sh, sp, b, rows, buyers, tz) {
   var n = b.participants.length;
   var cnt = splitCounts_(sp, b.participants).counts;
@@ -239,6 +260,8 @@ function writeSplit_(sh, sp, b, rows, buyers, tz) {
     sh.getRange(row, pc.col).setValue(k ? '=' + T + '/' + n + (k > 1 ? '*' + k : '') : 0);
   });
   sh.getRange(row, sp.totalCol).setFormula(totalF);
+  setNote_(sh.getRange(row, sp.totalCol), (b.title || 'Note') + ' · ' + dayLabel_(b.date) + '\n' + peopleText_(b.people) +
+    '\n' + b.lines.length + ' món' + (b.lines.some(function (ln) { return ln.kind !== 'use' && String(ln.portion || '1') !== '1'; }) ? ', có món chỉ tính một phần' : ''));
   if (sp.buyerCol > 0) {
     var who = [];
     b.lines.forEach(function (ln) {
@@ -378,6 +401,7 @@ function write_(b) {
     });
 
     var buyers = buyerList_(sh, top, col);
+    var people = (b.participants || []).map(function (p) { return matchBuyer_(p, buyers); });
     lines.forEach(function (ln, idx) {
       var row = rows[idx];
       if (row > sh.getMaxRows()) sh.insertRowsAfter(sh.getMaxRows(), row - sh.getMaxRows());
@@ -394,9 +418,11 @@ function write_(b) {
       ]]);
       /* dùng tiếp đồ dư: Số tiền để trống (đã tính ở ngày mua), cột kế Ngày ghi giá trị phần dùng */
       if (ln.kind === 'use') sh.getRange(row, col + 6).setFormula('=' + srcRef_(ln, b.sheet) + portionExpr_(ln.portion));
+      /* ghi chú ở ô Số tiền: món này chia cho ai, bao nhiêu người */
+      if (people.length) setNote_(sh.getRange(row, col + 3), lineNote_(b, ln, people));
     });
     var split = null;
-    if (sp) split = writeSplit_(sh, sp, { participants: b.participants, lines: lines, date: b.date || lines[0].date,
+    if (sp) split = writeSplit_(sh, sp, { participants: b.participants, people: people, title: b.title, lines: lines, date: b.date || lines[0].date,
       splitRow: splitRow, amountCol: col + 3, sheetName: b.sheet }, rows, buyers, tz);
     SpreadsheetApp.flush();
     var descs = rows.map(function (r) { return String(sh.getRange(r, col + 1).getDisplayValue()).trim(); });
