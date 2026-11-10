@@ -395,6 +395,8 @@ module.exports = async (req, res) => {
           ? { rows: it.sync.rows, descs: it.sync.descs, split: it.sync.split ? it.sync.split.formula : null } : null;
         const r = await callScript({
           action: "write", sheet, prev, force: !!b.force, date: it.date, title: it.title,
+          colors: Object.fromEntries(Object.entries(b.colors && typeof b.colors === "object" ? b.colors : {})
+            .filter(([k, v]) => typeof k === "string" && k.length < 60 && /^#[0-9a-fA-F]{6}$/.test(String(v))).slice(0, 30)),
           participants: it.participants.map(nameOf).filter(Boolean),
           lines: it.lines.map((l) => (l.kind === "use"
             ? { kind: "use", buyer: nameOf(l.buyer), desc: "↳ " + l.desc + " (dư " + dm(l.srcDate) + ")", qty: "", amount: null,

@@ -2414,7 +2414,13 @@ function runSync(id, force){
   var it = L.items.filter(function(x){ return x.id === id; })[0]; if(!it) return;
   if(!L.syncTab){ L.syncErr = "Chọn tab để ghi."; render(); return; }
   L.syncBusy = true; L.syncErr = ""; L.syncConflict = false; render();
-  api("POST", "items/" + id + "/sync", { sheet: L.syncTab, force: !!force }).then(function(r){
+  /* màu từng người (giống màu trên app) để cột Chia trên sheet tô đúng màu */
+  var colors = {};
+  it.participants.forEach(function(pid){
+    var nm = memberName(pid), c = personColor(nm);
+    if(/^#[0-9a-f]{6}$/i.test(c)) colors[nm] = c;
+  });
+  api("POST", "items/" + id + "/sync", { sheet: L.syncTab, force: !!force, colors: colors }).then(function(r){
     L.syncBusy = false;
     if(r.__status !== 200){
       L.syncErr = r.error || "Không ghi được lên sheet.";

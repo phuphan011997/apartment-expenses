@@ -201,14 +201,6 @@ function portionText_(p) {
 }
 function dayLabel_(iso) { return iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) : ''; }
 function peopleText_(names) { return 'Chia ' + names.length + ' người: ' + names.join(', '); }
-function lineNote_(b, ln, names) {
-  var out = [(b.title || 'Note') + (b.date ? ' · ' + dayLabel_(b.date) : '')];
-  if (ln.kind === 'use') out.push('Dùng tiếp đồ dư, phần dùng ' + (PORTION_LABEL_[ln.portion] || ln.portion) + ' món gốc');
-  out.push(peopleText_(names));
-  var pt = ln.kind === 'use' ? '' : portionText_(ln.portion);
-  if (pt) out.push(pt);
-  return out.join('\n');
-}
 /* ---- Cột "Chia" (cột I, bạn chèn thêm sau cột H): số người + chấm tròn tô màu theo màu tên
    người trong sheet, ví dụ "4 ●●●●". ---- */
 function hexToHsl_(hex) {
@@ -251,6 +243,7 @@ function strongColor_(hex) {
   return '#' + f(h + 1 / 3) + f(h) + f(h - 1 / 3);
 }
 function personColor_(p, colors) {
+  for (var i = 0; i < colors.length; i++) if (colors[i].sent && samePerson_(colors[i].name, p)) return colors[i].color;
   var best = null, bs = -1;
   colors.forEach(function (c) {
     if (!samePerson_(c.name, p)) return;
@@ -497,7 +490,13 @@ function write_(b) {
 
     var buyers = buyerList_(sh, top, col);
     var people = (b.participants || []).map(function (p) { return matchBuyer_(p, buyers); });
-    var pcolors = people.length && chiaCol > 0 ? personColors_(sh) : [];
+    /* màu: ưu tiên màu app gửi (giống màu trên app), sau đó mới tới màu nền tên trong sheet */
+    var pcolors = [];
+    if (people.length && chiaCol > 0) {
+      var sent = b.colors || {};
+      Object.keys(sent).forEach(function (k) { pcolors.push({ name: k, color: String(sent[k]).toLowerCase(), sent: true }); });
+      pcolors = pcolors.concat(personColors_(sh));
+    }
     if (people.length && chiaCol > 0) {
       var hc = sh.getRange(blk.headerRow, chiaCol);
       if (!hc.getDisplayValue()) hc.setValue('Chia');
@@ -516,8 +515,8 @@ function write_(b) {
         asText_(ln.left),
         date
       ]]);
-      /* ghi chú ở ô Số tiền: món này chia cho ai, bao nhiêu người */
-      if (people.length) setNote_(sh.getRange(row, col + 3), lineNote_(b, ln, people));
+      /* bỏ ghi chú ở ô Số tiền (bản trước có ghi) */
+      setNote_(sh.getRange(row, col + 3), '');
       /* dùng tiếp đồ dư: Số tiền để trống (đã tính ở ngày mua), cột H ghi giá trị phần dùng */
       if (ln.kind === 'use') sh.getRange(row, col + 6).setFormula('=' + srcRef_(ln, b.sheet) + portionExpr_(ln.portion));
       /* cột Chia: số người + chấm tô màu theo tên */

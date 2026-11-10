@@ -47,22 +47,17 @@ Phiên bản: Phiên bản mới → Triển khai**. Làm vậy thì URL đượ
   - Đồng bộ lại: tìm đúng dòng cũ theo công thức Tổng cộng và ghi đè.
   - Người tham gia không có cột trong bảng chia thì script dừng, không ghi gì.
 
-## Ghi chú chia cho ai
+## Ghi chú ở ô Tổng cộng
 
-Mỗi lần đồng bộ, script gắn **ghi chú (note)** vào ô, không thêm chữ vào bảng:
-
-- Ô **Số tiền** của từng món: tên note, ngày, `Chia 4 người: Chị La, Anh Phú, Chị Vân, Anh Tân`,
-  và `Tính vào chia ½ món` nếu món chỉ tính một phần.
-- Ô **Tổng cộng** của dòng chia tiền: tên note, ngày, danh sách người, số món.
-
-Ô có ghi chú hiện tam giác đen nhỏ ở góc. Trên máy tính rê chuột vào ô để xem; trên điện thoại
-chạm vào ô. Đồng bộ lại thì ghi chú được viết lại theo note mới.
+Ô **Tổng cộng** của dòng chia tiền có ghi chú (note): tên note, ngày, danh sách người, số món.
+Ô Số tiền của từng món không còn ghi chú (bản trước có ghi; đồng bộ lại sẽ xoá).
 
 ## Cột Chia (cột I, bạn tự chèn)
 
 Chèn một cột mới ngay sau cột H (Insert column → cột I mới, bảng chia tiền dời sang phải). Từ lần
 đồng bộ sau, script ghi vào cột đó số người và một chấm tròn cho mỗi người, ví dụ `4 ●●●●`, kèm
-tiêu đề "Chia". Mỗi chấm tô màu chữ theo màu tên người đó trong sheet (đậm hơn màu nền để nhìn rõ).
+tiêu đề "Chia". Mỗi chấm tô màu chữ theo **màu của người đó trên app** (app gửi kèm khi đồng bộ),
+đậm hơn một chút để nhìn rõ trên nền trắng. Nếu thiếu, script lấy màu nền ô tên người trong sheet.
 
 - Script chỉ ghi khi ô tiêu đề cột đó (cùng hàng "Người mua") đang trống hoặc là "Chia", và cột đó
   không phải cột Ngày của bảng chia tiền. Chưa chèn cột thì script bỏ qua, không ghi gì.
