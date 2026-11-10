@@ -257,7 +257,7 @@ function chiaRich_(people, sp, colors, suffix) {
   list.forEach(function (p, i) {
     var hex = personColor_(p, colors);
     /* đúng màu trên sheet; chấm to hơn chữ để màu nhạt vẫn nhìn rõ */
-    var st = SpreadsheetApp.newTextStyle().setForegroundColor(hex || '#94a3b8').setFontSize(14).build();
+    var st = SpreadsheetApp.newTextStyle().setForegroundColor(hex || '#94a3b8').setFontSize(18).build();
     rt.setTextStyle(head.length + i, head.length + i + 1, st);
   });
   return rt.build();
