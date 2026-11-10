@@ -397,6 +397,16 @@ body.lock{overflow:hidden}
 .ef label{display:block;font-size:11.5px;font-weight:600;color:var(--muted);margin:0 0 4px}
 .ef .calc{display:block;font-size:11.5px;color:var(--muted);font-family:var(--font-num);margin-top:3px;min-height:1em}
 .addnote{width:100%;padding:13px;font-size:15px}
+.mrow .main{min-width:0}
+.mrow .nm{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mdot{width:22px;height:22px;border-radius:99px;border:1px solid color-mix(in srgb,var(--pc) 60%,#000);background:var(--pc);padding:0;cursor:pointer;flex:none}
+.mdot[aria-expanded="true"]{box-shadow:0 0 0 3px var(--accent-soft)}
+.mauto{font-size:11.5px;color:var(--muted);font-weight:500}
+.swatches{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.sw{width:30px;height:30px;border-radius:99px;border:1px solid color-mix(in srgb,var(--pc) 60%,#000);background:var(--pc);padding:0;cursor:pointer;position:relative}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--accent)}
+.sw.custom{display:grid;place-items:center;background:var(--surface-2);border:1px dashed var(--line);overflow:hidden;color:var(--muted);font-weight:700}
+.sw.custom input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
 .btn.more{width:100%;margin-top:4px}
 .refreshing{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:-4px 0 0}
 .refreshing:before{content:"";width:10px;height:10px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
@@ -1222,7 +1232,26 @@ var COLOR_KEY = {};
 });
 var FALLBACK_COLORS = ["#E4D7F5", "#D3EBF2", "#F6D6E4", "#E2EFD0", "#F3E3C8", "#D8DEF7", "#F2D3CF", "#D6EFE6"];
 var _fallback = {};
+/* Màu người chọn trong app (Note → Người trong nhà) thắng màu đọc từ sheet.
+   Ô ghép "Tân + Xuyến" lấy màu người đầu tiên có màu riêng. */
+var MEMBER_COLOR = {};
+function setMemberColors(members){
+  MEMBER_COLOR = {};
+  (members || []).forEach(function(m){
+    if(m.color) nkeys(m.name).forEach(function(k){ MEMBER_COLOR[k] = m.color; });
+  });
+}
+function memberColor(label){
+  var parts = String(label == null ? "" : label).split(/\s*\+\s*/);
+  for(var i = 0; i < parts.length; i++){
+    var ks = nkeys(parts[i]);
+    for(var j = 0; j < ks.length; j++){ if(MEMBER_COLOR[ks[j]]) return MEMBER_COLOR[ks[j]]; }
+  }
+  return "";
+}
 function personColor(label){
+  var own = memberColor(label);
+  if(own) return own;
   var parts = String(label == null ? "" : label).split(/\s*\+\s*/);
   var full = COLOR_KEY["@" + parts.map(function(x){ return nkeys(x)[0]; }).join("+")];
   if(full) return full;
@@ -2227,7 +2256,7 @@ function notesCacheSave(){
 function ledgerLoad(){
   var c = L.status !== "ready" && notesCacheLoad();
   if(c){
-    L.members = c.members; L.items = c.items; L.hasMore = !!c.hasMore; L.sheetSync = !!c.sheetSync;
+    L.members = c.members; L.items = c.items; setMemberColors(L.members); L.hasMore = !!c.hasMore; L.sheetSync = !!c.sheetSync;
     sortItems();
     if(!L.form) L.form = blankForm();
     L.status = "ready";
@@ -2245,6 +2274,9 @@ function ledgerLoad(){
     }
     L.sheetSync = !!b.sheetSync;
     L.members = b.members || [];
+    var before = JSON.stringify(MEMBER_COLOR);
+    setMemberColors(L.members);
+    if(JSON.stringify(MEMBER_COLOR) !== before && state.tab !== "items") render();
     L.items = b.items || [];
     L.hasMore = !!b.hasMore;
     sortItems();
@@ -2417,8 +2449,8 @@ function runSync(id, force){
   /* màu từng người (giống màu trên app) để cột Chia trên sheet tô đúng màu */
   var colors = {};
   it.participants.forEach(function(pid){
-    var nm = memberName(pid), c = personColor(nm);
-    if(/^#[0-9a-f]{6}$/i.test(c)) colors[nm] = c;
+    var m = L.members.filter(function(x){ return x.id === pid; })[0];
+    if(m && m.color) colors[m.name] = m.color;
   });
   api("POST", "items/" + id + "/sync", { sheet: L.syncTab, force: !!force, colors: colors }).then(function(r){
     L.syncBusy = false;
@@ -2454,6 +2486,19 @@ function deleteItem(id){
     if(reset){ syncForm(); L.form = blankForm(); }
     flash("Đã xoá “" + (gone ? gone.title : "") + "”", reset);
   }).catch(function(){ L.err = "Mất kết nối, chưa xoá được."; rerender(); });
+}
+/* Bảng màu ô chọn (dropdown) của Google Sheets, để chọn đúng màu như trên sheet */
+var CHIP_COLORS = ["#E8EAED", "#FFCFC9", "#FFC8AA", "#FFE5A0", "#D4EDBC", "#BFE1F6", "#C6DBE1", "#E6CFF2",
+                   "#D9EAD3", "#FCE5CD", "#FFF2CC", "#C9DAF8", "#F4CCCC", "#D9D2E9", "#D0E0E3", "#EAD1DC"];
+function setMemberColor(id, color){
+  var m = L.members.filter(function(x){ return x.id === id; })[0];
+  if(!m) return;
+  var old = m.color || "";
+  m.color = color; setMemberColors(L.members); render();
+  api("PUT", "members/" + id, { name: m.name, color: color }).then(function(r){
+    if(r.__status !== 200){ m.color = old; setMemberColors(L.members); L.memberMsg = r.error || "Chưa lưu được màu."; }
+    notesCacheSave(); rerender();
+  }).catch(function(){ m.color = old; setMemberColors(L.members); L.memberMsg = "Mất kết nối, chưa lưu được màu."; rerender(); });
 }
 function addMembers(names){
   names = names.map(function(s){ return s.replace(/\s+/g, " ").trim(); })
@@ -2948,7 +2993,16 @@ function viewItems(){
   h += '<div class="card"><div class="ttl"><h2>Người trong nhà</h2><em>' + L.members.length + ' người</em></div><div class="rows">' +
     L.members.map(function(m){
       var armed = L.delArm === "m:" + m.id;
-      return '<div class="row"><div class="main"><div class="nm">' + pdot(m.name) + esc(m.name) + '</div></div>' +
+      var open = L.colorFor === m.id;
+      return '<div class="row mrow"><div class="main"><div class="nm">' +
+          '<button class="mdot" data-act="colorPick" data-id="' + esc(m.id) + '" aria-expanded="' + open + '" aria-label="Đổi màu ' + esc(m.name) + '" style="--pc:' + personColor(m.name) + '"></button>' +
+          esc(m.name) + (m.color ? "" : '<span class="mauto">màu tự động</span>') + '</div>' +
+          (open ? '<div class="swatches">' + CHIP_COLORS.map(function(c){
+              return '<button class="sw" data-act="setColor" data-id="' + esc(m.id) + '" data-c="' + c + '" style="--pc:' + c + '" aria-pressed="' + (m.color === c) + '"></button>';
+            }).join("") +
+            '<label class="sw custom" title="Màu khác"><input type="color" id="mc_' + esc(m.id) + '" value="' + (m.color || "#cccccc").toLowerCase() + '"><span>+</span></label>' +
+            '<button class="lnk" data-act="setColor" data-id="' + esc(m.id) + '" data-c="">Tự động</button></div>' : "") +
+        '</div>' +
         '<button class="lnk b-del' + (armed ? " armed" : "") + '" data-act="delMember" data-id="' + esc(m.id) + '">' + (armed ? "Bấm lần nữa để xoá" : "Xoá") + '</button></div>';
     }).join("") + '</div>' +
     '<div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="lfMember" placeholder="Thêm người" style="flex:1">' +
@@ -2986,6 +3040,8 @@ function wireItems(){
       tokenSet(t.trim()); L.msg = ""; return ledgerLoad();
     }
     if(act === "seed") return addMembers(sheetNames());
+    if(act === "colorPick"){ L.colorFor = L.colorFor === id ? "" : id; return render(); }
+    if(act === "setColor"){ L.colorFor = ""; setMemberColor(id, b.dataset.c); return; }
     if(act === "addMember"){
       var inp = document.getElementById("lfMember");
       if(inp && inp.value.trim()) addMembers([inp.value]);
@@ -3036,6 +3092,7 @@ function wireItems(){
     if(act === "syncForce") return runSync(id, true);
   });
   root.addEventListener("change", function(e){
+    if(e.target.type === "color" && /^mc_/.test(e.target.id)){ setMemberColor(e.target.id.slice(3), e.target.value.toUpperCase()); return; }
     var el = e.target; if(!el.dataset || el.dataset.actUse === undefined) return;
     var ln = L.form.lines[+el.dataset.actUse]; if(!ln) return;
     var k = +el.value, uo = useOptions(ln);

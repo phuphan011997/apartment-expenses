@@ -228,18 +228,17 @@ function personColors_(sh) {
   }
   return out;
 }
-/* Màu của người: đúng màu nền ô tên người đó trên sheet (ô ghép "A.Phú + C.Vân" thì cả hai
-   cùng màu ô đó). Không có ô nào thì mới dùng màu app gửi. */
+/* Màu của người: màu bạn chọn cho người đó trong app (Note → Người trong nhà) nếu có;
+   không thì đúng màu nền ô tên người đó trên sheet (ô ghép "A.Phú + C.Vân" thì cả hai cùng màu). */
 function personColor_(p, colors) {
+  for (var k = 0; k < colors.length; k++) if (colors[k].sent && samePerson_(colors[k].name, p)) return colors[k].color;
   var best = null, bs = -1;
   colors.forEach(function (c) {
     if (c.sent || !samePerson_(c.name, p)) return;
     var hsl = hexToHsl_(c.color), sat = hsl ? hsl.s : 0;
     if (sat > bs) { bs = sat; best = c.color; }
   });
-  if (best) return best;
-  for (var i = 0; i < colors.length; i++) if (colors[i].sent && samePerson_(colors[i].name, p)) return colors[i].color;
-  return null;
+  return best;
 }
 /* "4 ●●●●" — mỗi chấm tô đúng màu của người đó (chữ màu, không dùng emoji nên máy nào cũng thấy màu) */
 function chiaRich_(people, sp, colors, suffix) {
@@ -480,7 +479,7 @@ function write_(b) {
 
     var buyers = buyerList_(sh, top, col);
     var people = (b.participants || []).map(function (p) { return matchBuyer_(p, buyers); });
-    /* màu: lấy theo màu nền ô tên người trên sheet; thiếu thì dùng màu app gửi */
+    /* màu: màu chọn trong app trước, sau đó màu nền ô tên người trên sheet */
     var pcolors = [];
     if (people.length && chiaCol > 0) {
       var sent = b.colors || {};

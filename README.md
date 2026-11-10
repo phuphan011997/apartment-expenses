@@ -107,7 +107,8 @@ Thanh menu dưới cùng:
   nó đang được dùng. Lọc theo người để xem phần mình. Mỗi note một thẻ, ghi số
   người tham gia. Chế độ **Lịch** theo tháng hiện số note và số người mỗi ngày. Lưu vào MongoDB.
 
-Màu của từng người lấy theo màu nền tên trong sheet (bảng tổng hợp cuối tab tuần),
+Màu của từng người: chọn trong **Note → Người trong nhà** (bấm chấm màu cạnh tên; bảng màu giống
+màu ô chọn tên của Google Sheets, có ô chọn màu khác). Người chưa chọn thì lấy theo màu nền tên trong sheet (bảng tổng hợp cuối tab tuần),
 ghép theo tên kể cả viết tắt ("Chị VAnh" = "Chị Vân Anh"). Google không trả màu khi
 đọc trực tiếp, nên màu được lấy từ file sheet lúc đóng gói app.
 

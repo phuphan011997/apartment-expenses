@@ -7,7 +7,7 @@
 //  Các đường dẫn:
 //    GET    /api/health            kiểm tra kết nối, có cần mã truy cập không
 //    GET    /api/members           danh sách người
-//    PUT    /api/members/:id       thêm hoặc sửa một người   { name }
+//    PUT    /api/members/:id       thêm hoặc sửa một người   { name, color? }
 //    DELETE /api/members/:id       xoá một người (không được nếu còn trong hạng mục)
 //    GET    /api/items             danh sách hạng mục, mới nhất trước
 //    PUT    /api/items/:id         thêm hoặc sửa một hạng mục
@@ -337,6 +337,8 @@ module.exports = async (req, res) => {
         if (!name) return bad(res, "Cần tên người.");
         const set = { name, updatedAt: now };
         if (typeof b.order === "number" && isFinite(b.order)) set.order = b.order;
+        /* màu riêng của người (để khớp màu ô chọn tên trên sheet); "" = về màu tự động */
+        if (b.color !== undefined) set.color = /^#[0-9a-fA-F]{6}$/.test(String(b.color)) ? String(b.color).toUpperCase() : "";
         await c.updateOne({ _id: id }, { $set: set, $setOnInsert: { createdAt: now } }, { upsert: true });
         return send(res, 200, { member: out(await c.findOne({ _id: id })) });
       }
