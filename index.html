@@ -395,6 +395,9 @@ table.pgrid{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
 .fx{width:36px;height:36px;border-radius:10px;border:0;background:var(--surface-2);color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0}
 .fx svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
 .ffoot{display:flex;gap:8px;margin-top:2px}
+.fsearch{position:relative}
+.fsearch svg{position:absolute;left:12px;top:50%;width:18px;height:18px;margin-top:-9px;fill:none;stroke:var(--muted);stroke-width:2.2;stroke-linecap:round;pointer-events:none}
+.fsearch input{padding-left:38px}
 .ffoot .btn{flex:1}
 .fpanel .flabel{margin:0 0 6px}
 .fwrap{display:flex;flex-wrap:wrap;gap:6px}
@@ -2160,7 +2163,7 @@ var L = {
   refreshing: false, hasMore: false, loadingMore: false, showN: 40,
   syncFor: "", syncTab: "", tabs: null, syncBusy: false, syncErr: "", syncConflict: false,
   syncWarn: "",             // note đang hiện cảnh báo món chưa có số tiền
-  showFilter: false, fDate: "all", fFrom: "", fTo: "", fSync: "all"   // bộ lọc note
+  showFilter: false, fDate: "all", fFrom: "", fTo: "", fSync: "all", fQ: ""   // bộ lọc note
 };
 function tokenGet(){ try{ return localStorage.getItem(TK) || ""; }catch(e){ return ""; } }
 function tokenSet(v){ try{ if(v) localStorage.setItem(TK, v); else localStorage.removeItem(TK); }catch(e){} }
@@ -2981,12 +2984,23 @@ function dateBounds(){
 }
 function filterCount(){
   var d = dateBounds();
-  return (d[0] || d[1] ? 1 : 0) + (L.fSync !== "all" ? 1 : 0);
+  return (d[0] || d[1] ? 1 : 0) + (L.fSync !== "all" ? 1 : 0) + (fold(L.fQ) ? 1 : 0);
+}
+/* bỏ dấu, chữ thường: "Thịt bò" khớp "thit bo" */
+function fold(s){
+  return String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/\s+/g, " ").trim();
+}
+/* tìm trong tên note, ghi chú và mô tả từng món; gõ nhiều chữ thì note phải có đủ các chữ */
+function noteMatches(it, words){
+  var hay = fold([it.title, it.note].concat((it.lines || []).map(function(l){ return l.desc; })).join(" \n "));
+  return words.every(function(w){ return hay.indexOf(w) >= 0; });
 }
 function filterNotes(items){
   var d = dateBounds(), from = d[0], to = d[1], fs = L.fSync;
-  if(!from && !to && fs === "all") return items;
+  var words = fold(L.fQ).split(" ").filter(Boolean);
+  if(!from && !to && fs === "all" && !words.length) return items;
   return items.filter(function(it){
+    if(words.length && !noteMatches(it, words)) return false;
     var day = it.date || "";
     if(from && day < from) return false;
     if(to && day > to) return false;
@@ -3009,12 +3023,20 @@ function filterPanel(n){
     '<div class="fpanel" id="fPanel">' +
     '<div class="fhead"><h2 id="fTitle">Lọc note</h2><button class="fx" data-act="filter" aria-label="Đóng">' +
       '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>' +
+    '<div class="fsec"><div class="flabel">Tìm</div><div class="fsearch">' +
+      '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4 4"></path></svg>' +
+      '<input type="search" id="fQ" value="' + esc(L.fQ) + '" placeholder="Tên note, ghi chú, món…" autocomplete="off" enterkeyhint="search"></div></div>' +
     '<div class="fsec"><div class="flabel">Ngày</div><div class="fwrap">' + pills(F_DATES, L.fDate, "fDate") + '</div>' +
       (L.fDate === "range" ? '<div class="frange"><label>Từ<input type="date" id="fFrom" value="' + esc(L.fFrom) + '"></label>' +
         '<label>Đến<input type="date" id="fTo" value="' + esc(L.fTo) + '"></label></div>' : "") + '</div>' +
     '<div class="fsec"><div class="flabel">Sheet</div><div class="fwrap">' + pills(F_SYNC, L.fSync, "fSync") + '</div></div>' +
-    '<div class="ffoot"><button class="btn" data-act="fClear"' + (filterCount() ? "" : " disabled") + '>Bỏ lọc</button>' +
-      '<button class="btn b-save" data-act="filter">Xem ' + n + ' note</button></div></div></div>';
+    '<div class="ffoot"><button class="btn" id="fClr" data-act="fClear"' + (filterCount() ? "" : " disabled") + '>Bỏ lọc</button>' +
+      '<button class="btn b-save" id="fGo" data-act="filter">Xem ' + n + ' note</button></div></div></div>';
+}
+function byWho(items){
+  return L.who === "all" ? items : items.filter(function(it){
+    return it.participants.indexOf(L.who) >= 0 || buyersOf(it).indexOf(L.who) >= 0;
+  });
 }
 /* món thường chưa nhập số tiền (món dùng đồ dư không cần) */
 function missingAmounts(it){
@@ -3072,9 +3094,7 @@ function viewItems(){
 
   /* lọc theo ngày / trạng thái sheet, rồi lọc theo người */
   var base = filterNotes(L.items), nf = filterCount();
-  var list = L.who === "all" ? base : base.filter(function(it){
-    return it.participants.indexOf(L.who) >= 0 || buyersOf(it).indexOf(L.who) >= 0;
-  });
+  var list = byWho(base);
   h += '<div class="vbar">' + segView("noteView", state.noteView) +
     '<button class="fbtn" data-act="filter" aria-expanded="' + L.showFilter + '" aria-label="Bộ lọc"' + (nf ? ' data-on="1"' : "") + '>' +
     '<svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>' + (nf ? '<i>' + nf + '</i>' : "") + '</button></div>';
@@ -3228,7 +3248,7 @@ function wireItems(){
     if(act === "filter"){ L.showFilter = !L.showFilter; L.filterAnim = L.showFilter; return render(); }
     if(act === "fDate"){ L.fDate = id; L.showN = 40; return render(); }
     if(act === "fSync"){ L.fSync = id; L.showN = 40; return render(); }
-    if(act === "fClear"){ L.fDate = "all"; L.fFrom = ""; L.fTo = ""; L.fSync = "all"; L.showN = 40; return render(); }
+    if(act === "fClear"){ L.fDate = "all"; L.fFrom = ""; L.fTo = ""; L.fSync = "all"; L.fQ = ""; L.showN = 40; return render(); }
     if(act === "syncGo") return runSync(id, false);
     if(act === "syncForce") return runSync(id, true);
   });
@@ -3243,6 +3263,14 @@ function wireItems(){
     render();
   });
   root.addEventListener("input", function(e){
+    if(e.target.id === "fQ"){
+      /* gõ tìm: chỉ cập nhật số note trên nút, không vẽ lại cả trang để bàn phím không bị đóng */
+      L.fQ = e.target.value; L.showN = 40;
+      var go = document.getElementById("fGo"), clr = document.getElementById("fClr");
+      if(go) go.textContent = "Xem " + byWho(filterNotes(L.items)).length + " note";
+      if(clr) clr.disabled = !filterCount();
+      return;
+    }
     var el = e.target; if(!el.dataset || !el.dataset.lf) return;
     var ln = L.form.lines[+el.dataset.li]; if(!ln) return;
     if(el.dataset.lf === "expr"){
@@ -3254,6 +3282,11 @@ function wireItems(){
     ln[el.dataset.lf] = el.value;
     var t = document.getElementById("enTotal"); if(t) t.textContent = vnd(linesTotal(L.form.lines));
     var n = document.getElementById("enCount"); if(n) n.textContent = L.form.lines.filter(function(l){ return !lineEmpty(l); }).length + " món";
+  });
+  var fq = document.getElementById("fQ");
+  if(fq) fq.addEventListener("keydown", function(e){
+    if(e.key !== "Enter") return;
+    e.preventDefault(); fq.blur(); L.showFilter = false; render();
   });
   ["lfMember", "lfToken"].forEach(function(fid){
     var el = document.getElementById(fid);
