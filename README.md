@@ -104,7 +104,7 @@ Thanh menu dưới cùng:
   **Đồng bộ** để ghi lên tab tuần (các món và một dòng trong bảng chia tiền); app tự chọn tab theo ngày. Nút **↳ Dùng đồ dư** trong màn hình nhập lấy
   lại phần còn dư của món ở note trước (món có "Tính vào chia" nhỏ hơn cả món), chọn dùng hết
   hoặc một phần; app không cho dùng quá phần còn lại, và không cho xoá note gốc khi đồ dư của
-  nó đang được dùng. Lọc theo người để xem phần mình; nút lọc nhỏ cạnh Danh sách | Lịch mở bộ lọc
+  nó đang được dùng. Lọc theo người để xem phần mình; nút lọc nhỏ cạnh Danh sách | Lịch mở popup lọc
   theo ngày (hôm nay, 7 ngày, tháng này, chọn từ–đến) và theo sheet (đã lên / chưa lên, gồm cả note sửa sau khi ghi).
   Bấm Đồng bộ mà còn món chưa nhập số tiền thì app cảnh báo trước: **Nhập số tiền** hoặc **Vẫn đồng bộ**. Mỗi note một thẻ, ghi số
   người tham gia. Chế độ **Lịch** theo tháng hiện số note và số người mỗi ngày. Lưu vào MongoDB.
