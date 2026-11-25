@@ -93,7 +93,8 @@ Thanh menu dưới cùng:
 - **Chi tiêu** — lọc theo người mua và theo ngày, tìm theo tên món
 - **Thanh toán** — chọn **Cả nhà** để xem ai chuyển cho ai, hoặc chọn một người để
   xem người đó chuyển cho ai, phần phải trả từng ngày gồm những món nào, và đã ứng
-  những gì. Ở tab Nhà, chọn một người sẽ ra các khoản tiền nhà người đó phải đóng.
+  những gì (món người đó không tham gia thì ẩn đi, dựa theo người tham gia của note trong app;
+  món nhập tay trên sheet không biết ai chia nên vẫn hiện). Ở tab Nhà, chọn một người sẽ ra các khoản tiền nhà người đó phải đóng.
   Lựa chọn được nhớ trên máy. Chế độ **Lịch** hiện lưới người × ngày: ô có màu là
   người đó có phần chia hôm đó; bấm một ngày để xem ai tham gia, các món đã mua và
   dòng CK. Đầu tab có thẻ **Kiểm tra sheet** báo sheet chia đủ hay lệch, lệch ở đâu.

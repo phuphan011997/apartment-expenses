@@ -166,6 +166,7 @@ section{display:flex;flex-direction:column;gap:14px}
 .daycard .ditem .t b{display:block;font-size:14px;font-weight:500;overflow-wrap:anywhere}
 .daycard .ditem .t span{font-size:12px;color:var(--muted)}
 .daycard .ditem .v{flex:none;font-family:var(--font-num);font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.daycard .dskip{font-size:12px;color:var(--muted);font-style:italic;padding:0 14px 10px}
 .daycard .dck{display:flex;gap:8px;align-items:baseline;padding:10px 14px;border-top:1px dashed var(--line);font-size:13px}
 .daycard .dck b{flex:none;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .daycard .dck span{min-width:0;overflow-wrap:anywhere;color:var(--accent-ink);font-weight:600}
@@ -1745,7 +1746,9 @@ function payCalendar(d, res, sel){
   var day = days.filter(function(x){ return x.label === pick; })[0];
   var dt = dayOfLabel(day.label, d);
   var who = groups.filter(function(g){ return v(day, g) > 0.5; });
-  var bought = d.items.filter(function(it){ return it.date && dshort(it.date) === day.label; });
+  var all = d.items.filter(function(it){ return it.date && dshort(it.date) === day.label; });
+  /* đang xem một người: chỉ hiện món người đó có chia */
+  var bought = sel ? all.filter(function(it){ return !notInIt(it, sel); }) : all, skip = all.length - bought.length;
   var n = function(x){ return nf.format(Math.round(x)); };
   h += '<div class="daycard" id="paycalDay"><div class="dtop"><span class="dname">' + esc(dt ? dlong(dt) : day.label) + '</span>' +
       '<span class="dsum" style="color:var(--fg)">' + esc(vnd(day.total)) + '</span></div>' +
@@ -1756,6 +1759,7 @@ function payCalendar(d, res, sel){
         return '<div class="ditem"><div class="t"><b>' + esc(it.name) + (it.qty ? ' · ' + esc(it.qty) : "") + '</b>' +
           '<span>' + pdot(it.buyer) + esc(it.buyer) + ' mua</span></div><div class="v">' + (it.amount == null ? "—" : n(it.amount)) + '</div></div>';
       }).join("") + '</div>' : "") +
+    (skip ? '<div class="dskip">Đã ẩn ' + skip + ' món ' + esc(sel.label) + ' không tham gia</div>' : "") +
     (day.buyer ? '<div class="dck"><b>Người mua</b><span>' + esc(day.buyer) + '</span></div>' : "") +
     (day.note ? '<div class="dck"><b>CK cho</b><span>' + esc(day.note) + '</span></div>' : "") + '</div>';
   return h;
@@ -1783,6 +1787,42 @@ function dayDate(label, d){
 }
 
 /* Một người: chuyển cho ai, phần phải trả từng ngày gồm những món nào, đã ứng gì */
+/* Món nào người này không tham gia chia?
+   Sheet chỉ có số tiền chia theo ngày, không ghi ai chia món nào. Những món ghi lên từ note
+   trong app thì biết rõ người tham gia, nên dò theo ngày + mô tả món.
+   Trả về true = chắc chắn không tham gia; món nhập tay trên sheet (không rõ) thì vẫn hiện. */
+function lineIndex(){
+  var tab = state.current, sig = tab + "|" + L.items.length + "|" + (L.loadedAt || 0);
+  if(lineIndex.sig === sig) return lineIndex.map;
+  var map = {};
+  L.items.forEach(function(it){
+    if(!it.lines || !it.lines.length) return;
+    /* note đã ghi vào tab này, hoặc chưa đồng bộ nhưng ngày nằm trong tab (món nhập tay trùng tên) */
+    if(it.sync ? it.sync.sheet !== tab : tabForDate(it.date, [tab]) !== tab) return;
+    var dd = isoDate(it.date); if(!dd) return;
+    var names = it.participants.map(memberName);
+    (it.lines || []).forEach(function(l, i){
+      var desc = (it.sync && it.sync.descs && it.sync.descs[i]) || l.desc;
+      var who = l.portion === "0" ? [] : names;
+      var k = dshort(dd) + "|" + fold(desc);
+      /* cùng ngày, cùng tên món ở hai note: gộp người của cả hai */
+      map[k] = map[k] ? map[k].concat(who) : who.slice();
+    });
+  });
+  lineIndex.sig = sig; lineIndex.map = map;
+  return map;
+}
+function sameMember(part, name){
+  var a = nkeys(part), b = nkeys(name);
+  return nameKey(name) === part || a.some(function(k){ return b.indexOf(k) >= 0; });
+}
+function notInIt(it, g){
+  if(!g || !it.date) return false;
+  var who = lineIndex()[dshort(it.date) + "|" + fold(it.name)];
+  if(!who) return false;
+  return !who.some(function(nm){ return g.parts.some(function(p){ return sameMember(p, nm); }); });
+}
+
 function personPay(d, g, moves){
   var n = function(x){ return nf.format(Math.round(x)); };
   var outs = moves.filter(function(m){ return m.from === g.label; });
@@ -1825,13 +1865,16 @@ function personPay(d, g, moves){
   }else{
     h += days.map(function(x){
       var dt = dayDate(x.day.label, d);
-      var bought = d.items.filter(function(it){ return it.date && dshort(it.date) === x.day.label; });
+      var all = d.items.filter(function(it){ return it.date && dshort(it.date) === x.day.label; });
+      /* chỉ liệt kê món người này có chia; món không tham gia ẩn đi để khỏi tưởng phải trả */
+      var bought = all.filter(function(it){ return !notInIt(it, g); }), skip = all.length - bought.length;
       return '<div class="daycard"><div class="dtop"><span class="dname">' + esc(dt ? dlong(dt) : "Ngày " + x.day.label) + '</span>' +
           '<span class="dsum">' + esc(vnd(x.v)) + '</span></div>' +
         (bought.length ? '<div class="ditems">' + bought.map(function(it){
             return '<div class="ditem"><div class="t"><b>' + esc(it.name) + (it.qty ? ' · ' + esc(it.qty) : "") + '</b>' +
               '<span>' + esc(it.buyer) + ' mua</span></div><div class="v">' + (it.amount == null ? "—" : n(it.amount)) + '</div></div>';
           }).join("") + '</div>' : "") +
+        (skip ? '<div class="dskip">Đã ẩn ' + skip + ' món ' + esc(g.label) + ' không tham gia</div>' : "") +
         (x.day.buyer ? '<div class="dck"><b>Người mua</b><span>' + esc(x.day.buyer) + '</span></div>' : "") +
         (x.day.note ? '<div class="dck"><b>CK cho</b><span>' + esc(x.day.note) + '</span></div>' : "") +
         '</div>';
@@ -2330,7 +2373,12 @@ function ledgerLoad(){
     if(L.status === "ready") return;
     L.status = e && e.code === "no_api" ? "no_api" : "error";
     if(L.status === "error") L.msg = "Không tải được dữ liệu.";
-  }).then(function(){ L.refreshing = false; if(state.tab === "items") rerender(); });
+  }).then(function(){
+    L.refreshing = false;
+    if(state.tab === "items") rerender();
+    /* Thanh toán dùng note để biết ai chia món nào: có note mới thì vẽ lại */
+    else if(state.tab === "pay" && state.payWho !== "all" && L.status === "ready") render();
+  });
 }
 function notesStale(){
   if(L.refreshing) return false;
