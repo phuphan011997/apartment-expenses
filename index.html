@@ -369,6 +369,24 @@ table.pgrid{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
 .btn.sm{padding:7px 12px;font-size:13px;border-radius:9px}
 .spanel{padding:10px;border-radius:11px;background:var(--surface-2);display:flex;flex-direction:column;gap:8px}
 .spanel .sl{font-size:12px;font-weight:600;color:var(--muted)}
+.swarn{padding:10px;border-radius:11px;background:var(--warn-soft);display:flex;flex-direction:column;gap:8px}
+.swarn .sl{font-size:12.5px;color:var(--fg)}
+.swarn .sl b{color:var(--warn)}
+.swarn ul{margin:0;padding:0 0 0 18px;font-size:13px;display:flex;flex-direction:column;gap:3px}
+.swarn li span{color:var(--muted);font-size:12px;margin-left:6px}
+/* thanh Danh sách|Lịch + nút lọc */
+.vbar{display:flex;gap:8px;align-items:stretch}
+.vbar .seg{flex:1}
+.fbtn{position:relative;flex:none;width:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:grid;place-items:center;cursor:pointer;padding:0}
+.fbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+.fbtn[aria-expanded="true"],.fbtn[data-on]{color:var(--accent);border-color:var(--accent)}
+.fbtn i{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--accent);color:#fff;font:700 11px/18px var(--font-num,inherit);font-style:normal;text-align:center}
+.fpanel{padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.fpanel .flabel{margin:0 0 6px}
+.fwrap{display:flex;flex-wrap:wrap;gap:6px}
+.frange{display:flex;gap:8px;margin-top:8px}
+.frange label{flex:1;min-width:0;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.fpanel .lnk{align-self:flex-start}
 .exbox{margin-top:12px;padding:11px 12px;border:1px dashed var(--line);border-radius:11px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .exbox .t{min-width:0;font-size:13.5px}
 .exbox .t b{font-family:var(--font-num);font-variant-numeric:tabular-nums}
@@ -551,6 +569,10 @@ body.lock{overflow:hidden}
 :root[data-skin="clay"] .pill{border-width:2px;font-weight:700;padding:6px 13px}
 :root[data-skin="clay"] .pill[aria-pressed="true"]{background:var(--clay-blue);border-color:var(--clay-blue);color:#fff;box-shadow:0 2px 6px rgba(59,130,246,.45)}
 :root[data-skin="clay"] .seg{background:var(--surface);border:2px solid var(--clay-line);border-radius:18px;padding:5px;gap:4px;box-shadow:4px 6px 0 var(--clay-shadow)}
+:root[data-skin="clay"] .fbtn{width:52px;border:2px solid var(--clay-line);border-radius:18px;box-shadow:4px 6px 0 var(--clay-shadow)}
+:root[data-skin="clay"] .fbtn[aria-expanded="true"],:root[data-skin="clay"] .fbtn[data-on]{border-color:var(--accent)}
+:root[data-skin="clay"] .fpanel{border:2px solid var(--clay-line);border-radius:22px;box-shadow:4px 6px 0 var(--clay-shadow)}
+:root[data-skin="clay"] .swarn{border-radius:16px}
 :root[data-skin="clay"] .seg button{border-radius:13px;font-weight:800}
 :root[data-skin="clay"] .seg button[aria-pressed="true"]{background:var(--clay-blue);color:#fff;box-shadow:0 2px 6px rgba(59,130,246,.45)}
 :root[data-skin="clay"] .track{height:12px;border:1px solid var(--line);background:var(--surface-2)}
@@ -2122,7 +2144,9 @@ var L = {
   memberMsg: "", busy: false,
   sheetSync: false, entry: false, formOpen: false, openLines: {}, usePick: false,
   refreshing: false, hasMore: false, loadingMore: false, showN: 40,
-  syncFor: "", syncTab: "", tabs: null, syncBusy: false, syncErr: "", syncConflict: false
+  syncFor: "", syncTab: "", tabs: null, syncBusy: false, syncErr: "", syncConflict: false,
+  syncWarn: "",             // note đang hiện cảnh báo món chưa có số tiền
+  showFilter: false, fDate: "all", fFrom: "", fTo: "", fSync: "all"   // bộ lọc note
 };
 function tokenGet(){ try{ return localStorage.getItem(TK) || ""; }catch(e){ return ""; } }
 function tokenSet(v){ try{ if(v) localStorage.setItem(TK, v); else localStorage.removeItem(TK); }catch(e){} }
@@ -2427,7 +2451,10 @@ function syncState(it){
   if(!it.sync) return "none";
   return it.sync.fp === it.linesFp ? "done" : "stale";
 }
-function openSync(it){
+function openSync(it, skipWarn){
+  /* còn món chưa có số tiền: cảnh báo trước, chưa mở phần ghi */
+  if(!skipWarn && missingAmounts(it).length){ L.syncWarn = it.id; L.syncFor = ""; render(); return; }
+  L.syncWarn = "";
   L.syncFor = it.id; L.syncErr = ""; L.syncConflict = false;
   var pickDefault = function(){
     var tabs = syncTabs();
@@ -2565,6 +2592,15 @@ function syncBlock(it){
   var chip = st === "done" ? '<span class="chip ok">Đã lên sheet · ' + esc(it.sync.sheet) + '</span>'
     : st === "stale" ? '<span class="chip warn">Đã sửa, chưa cập nhật sheet</span>'
     : '<span class="chip">Chưa lên sheet</span>';
+  if(L.syncWarn === it.id){
+    var miss = missingAmounts(it);
+    return '<div class="swarn" role="alert"><div class="sl"><b>' + miss.length + ' món chưa nhập số tiền</b></div>' +
+      '<ul>' + miss.map(function(l){ return '<li>' + esc(l.desc || "(chưa có mô tả)") + '<span>' + esc(memberName(l.buyer)) + '</span></li>'; }).join("") + '</ul>' +
+      '<div class="sl">Đồng bộ bây giờ thì những món này sẽ để trống tiền trên sheet.</div>' +
+      '<div class="btnrow"><button class="btn sm b-edit" data-act="syncFix" data-id="' + esc(it.id) + '">Nhập số tiền</button>' +
+      '<button class="btn sm b-sync soft" data-act="syncAnyway" data-id="' + esc(it.id) + '">Vẫn đồng bộ</button>' +
+      '<button class="btn sm" data-act="syncCancel">Huỷ</button></div></div>';
+  }
   if(L.syncFor !== it.id){
     return '<div class="nsync">' + chip + '<button class="btn sm ' + (st === "done" ? "b-resync" : "b-sync") + '" data-act="syncOpen" data-id="' + esc(it.id) + '">' +
       (st === "done" ? "Đồng bộ lại" : "Đồng bộ") + '</button></div>';
@@ -2909,6 +2945,60 @@ function viewForm(f, editing){
       (L.saving ? "Đang lưu…" : editing ? "Lưu thay đổi" : "Lưu note") + '</button></div></div></div></div>';
 }
 
+/* ---- bộ lọc note: ngày + trạng thái sheet ---- */
+var F_DATES = [["all", "Mọi ngày"], ["today", "Hôm nay"], ["7", "7 ngày"], ["month", "Tháng này"], ["range", "Chọn ngày"]];
+var F_SYNC = [["all", "Tất cả"], ["done", "Đã lên sheet"], ["none", "Chưa lên sheet"]];
+function isoAdd(iso, n){
+  var d = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10) + n);
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
+function dateBounds(){
+  var t = todayISO();
+  if(L.fDate === "today") return [t, t];
+  if(L.fDate === "7") return [isoAdd(t, -6), t];
+  if(L.fDate === "month") return [t.slice(0, 8) + "01", t];
+  if(L.fDate === "range"){
+    var a = L.fFrom || "", b = L.fTo || "";
+    if(a && b && a > b){ var x = a; a = b; b = x; }
+    return [a, b];
+  }
+  return ["", ""];
+}
+function filterCount(){
+  var d = dateBounds();
+  return (d[0] || d[1] ? 1 : 0) + (L.fSync !== "all" ? 1 : 0);
+}
+function filterNotes(items){
+  var d = dateBounds(), from = d[0], to = d[1], fs = L.fSync;
+  if(!from && !to && fs === "all") return items;
+  return items.filter(function(it){
+    var day = it.date || "";
+    if(from && day < from) return false;
+    if(to && day > to) return false;
+    if(fs === "all") return true;
+    var st = syncState(it);
+    /* "Chưa lên sheet" gồm cả note đã sửa sau khi ghi (sheet chưa cập nhật) */
+    return fs === "done" ? st === "done" : (st === "none" || st === "stale");
+  });
+}
+function filterPanel(){
+  var pills = function(list, cur, act){
+    return list.map(function(o){
+      return '<button class="pill" data-act="' + act + '" data-id="' + o[0] + '" aria-pressed="' + (cur === o[0]) + '">' + o[1] + '</button>';
+    }).join("");
+  };
+  return '<div class="fpanel" id="fPanel">' +
+    '<div class="fsec"><div class="flabel">Ngày</div><div class="fwrap">' + pills(F_DATES, L.fDate, "fDate") + '</div>' +
+      (L.fDate === "range" ? '<div class="frange"><label>Từ<input type="date" id="fFrom" value="' + esc(L.fFrom) + '"></label>' +
+        '<label>Đến<input type="date" id="fTo" value="' + esc(L.fTo) + '"></label></div>' : "") + '</div>' +
+    '<div class="fsec"><div class="flabel">Sheet</div><div class="fwrap">' + pills(F_SYNC, L.fSync, "fSync") + '</div></div>' +
+    (filterCount() ? '<button class="lnk" data-act="fClear">Bỏ lọc</button>' : "") + '</div>';
+}
+/* món thường chưa nhập số tiền (món dùng đồ dư không cần) */
+function missingAmounts(it){
+  return (it.lines || []).filter(function(l){ return l.kind !== "use" && l.amount == null; });
+}
+
 function viewItems(){
   if(L.status === "idle" || L.status === "loading"){
     return '<div class="card"><div class="sk" style="height:12px;width:40%"></div><div class="sk" style="height:110px;margin-top:12px"></div></div>' +
@@ -2958,11 +3048,15 @@ function viewItems(){
   if(L.formOpen) h += viewForm(f, editing);
   if(L.entry) h += viewEntry(f);
 
-  /* lọc theo người */
-  var list = L.who === "all" ? L.items : L.items.filter(function(it){
+  /* lọc theo ngày / trạng thái sheet, rồi lọc theo người */
+  var base = filterNotes(L.items), nf = filterCount();
+  var list = L.who === "all" ? base : base.filter(function(it){
     return it.participants.indexOf(L.who) >= 0 || buyersOf(it).indexOf(L.who) >= 0;
   });
-  h += segView("noteView", state.noteView);
+  h += '<div class="vbar">' + segView("noteView", state.noteView) +
+    '<button class="fbtn" data-act="filter" aria-expanded="' + L.showFilter + '" aria-label="Bộ lọc"' + (nf ? ' data-on="1"' : "") + '>' +
+    '<svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"></path></svg>' + (nf ? '<i>' + nf + '</i>' : "") + '</button></div>';
+  if(L.showFilter) h += filterPanel();
   h += '<div class="filters" id="fWho" role="group" aria-label="Lọc theo người">' +
     '<button class="pill" data-act="who" data-id="all" aria-pressed="' + (L.who === "all") + '">Tất cả</button>' +
     L.members.map(function(m){
@@ -2970,18 +3064,18 @@ function viewItems(){
     }).join("") + '</div>';
 
   if(L.who !== "all"){
-    var joined = L.items.filter(function(it){ return it.participants.indexOf(L.who) >= 0; });
+    var joined = base.filter(function(it){ return it.participants.indexOf(L.who) >= 0; });
     var mine = joined.reduce(function(a, it){ return a + shareOf(it); }, 0);
-    var paid = L.items.reduce(function(a, it){ return a + paidBy(it, L.who); }, 0);
+    var paid = base.reduce(function(a, it){ return a + paidBy(it, L.who); }, 0);
     h += '<div class="diff"><span><b>' + esc(memberName(L.who)) + '</b> tham gia ' + joined.length + ' note · phần mình ' +
       esc(vnd(mine)) + ' · đã trả ' + esc(vnd(paid)) + '</span></div>';
   }else{
-    h += '<div class="diff"><span>' + L.items.length + ' note · đã ghi ' +
-      esc(vnd(L.items.reduce(function(a, it){ return a + itemTotal(it); }, 0))) + '</span></div>';
+    h += '<div class="diff"><span>' + (nf ? base.length + '/' + L.items.length : L.items.length) + ' note · đã ghi ' +
+      esc(vnd(base.reduce(function(a, it){ return a + itemTotal(it); }, 0))) + '</span></div>';
   }
 
   if(state.noteView === "cal") h += noteCalendar(list);
-  else if(!list.length) h += '<div class="empty">' + (L.items.length ? "Người này chưa có note nào." : "Chưa có note nào.") + '</div>';
+  else if(!list.length) h += '<div class="empty">' + (!L.items.length ? "Chưa có note nào." : nf ? "Không có note nào khớp bộ lọc." : "Người này chưa có note nào.") + '</div>';
   else{
     /* nhiều note thì chỉ vẽ 40 note mới nhất, bấm để xem thêm */
     h += noteDays(list.slice(0, L.showN));
@@ -3100,11 +3194,24 @@ function wireItems(){
       L.usePick = false; L.err = ""; return render();
     }
     if(act === "syncOpen"){ var it2 = L.items.filter(function(x){ return x.id === id; })[0]; if(it2) openSync(it2); return; }
-    if(act === "syncCancel"){ L.syncFor = ""; L.syncErr = ""; L.syncConflict = false; return render(); }
+    if(act === "syncCancel"){ L.syncFor = ""; L.syncWarn = ""; L.syncErr = ""; L.syncConflict = false; return render(); }
+    if(act === "syncAnyway"){ var it3 = L.items.filter(function(x){ return x.id === id; })[0]; if(it3) openSync(it3, true); return; }
+    if(act === "syncFix"){
+      /* mở thẳng màn nhập chi tiêu của note đó */
+      var it4 = L.items.filter(function(x){ return x.id === id; })[0];
+      L.syncWarn = "";
+      if(it4){ L.form = formFrom(it4); L.err = ""; L.formOpen = true; L.entry = true; render(); }
+      return;
+    }
+    if(act === "filter"){ L.showFilter = !L.showFilter; return render(); }
+    if(act === "fDate"){ L.fDate = id; L.showN = 40; return render(); }
+    if(act === "fSync"){ L.fSync = id; L.showN = 40; return render(); }
+    if(act === "fClear"){ L.fDate = "all"; L.fFrom = ""; L.fTo = ""; L.fSync = "all"; L.showN = 40; return render(); }
     if(act === "syncGo") return runSync(id, false);
     if(act === "syncForce") return runSync(id, true);
   });
   root.addEventListener("change", function(e){
+    if(e.target.id === "fFrom" || e.target.id === "fTo"){ L[e.target.id] = e.target.value; L.showN = 40; render(); return; }
     if(e.target.type === "color" && /^mc_/.test(e.target.id)){ setMemberColor(e.target.id.slice(3), e.target.value.toUpperCase()); return; }
     var el = e.target; if(!el.dataset || el.dataset.actUse === undefined) return;
     var ln = L.form.lines[+el.dataset.actUse]; if(!ln) return;
